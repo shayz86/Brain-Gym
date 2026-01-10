@@ -385,23 +385,17 @@
             }
         }
     </script>
-<!-- PWA Service Worker -->
 <script>
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    navigator.serviceWorker
-      .register("service-worker.js")
-      .then(function (registration) {
-        console.log("Service Worker terdaftar:", registration.scope);
-      })
-      .catch(function (error) {
-        console.log("Service Worker gagal:", error);
-      });
-  });
+  navigator.serviceWorker
+    .register("./service-worker.js")
+    .then(() => console.log("SW REGISTERED"))
+    .catch(err => console.error("SW ERROR", err));
 }
 </script>
     
 </body>
 </html>
+
 
 

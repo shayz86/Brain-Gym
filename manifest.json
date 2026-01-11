@@ -1,6 +1,6 @@
 {
-  "name": "Game Asah Otak",
-  "short_name": "Asah Otak",
+  "name": "Brain Gym - Game Asah Otak",
+  "short_name": "Brain Gym",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#000000",
@@ -18,3 +18,4 @@
     }
   ]
 }
+

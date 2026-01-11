@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* CSS SAFETY (Sama seperti V26) */
+        /* CSS SAFETY */
         body {
             background-color: #0f172a; color: white; font-family: sans-serif;
             margin: 0; padding: 0; overflow: hidden;
@@ -82,9 +82,11 @@
             </div>
 
             <div id="lose-modal" class="absolute inset-0 bg-slate-900/95 flex-col items-center justify-center hidden z-50 rounded-xl">
-                <h2 class="text-3xl text-red-500 font-bold mb-4">WAKTU HABIS!</h2>
-                <div onclick="APP.reset()" class="btn bg-white text-slate-900 mb-2">ULANGI</div>
-                <div onclick="APP.home()" class="btn btn-sec">MENU</div>
+                <h2 class="text-3xl text-red-500 font-bold mb-4">GAME OVER!</h2>
+                
+                <div onclick="APP.start()" class="btn bg-white text-slate-900 mb-2">MAIN LAGI (DARI AWAL)</div>
+                
+                <div onclick="APP.home()" class="btn btn-sec">MENU UTAMA</div>
             </div>
             
             <div class="mt-4 text-center text-slate-500 text-xs px-8">
@@ -104,32 +106,51 @@
 
         var C = {1:'#ef4444', 2:'#3b82f6', 3:'#22c55e', 4:'#eab308', 5:'#d946ef', 6:'#f97316', 7:'#06b6d4', 8:'#94a3b8', 9:'#fff', 10:'#555'};
         
-        // --- LEVEL GENERATOR (50 Levels) ---
-        // Base Patterns
+        // --- LEVEL GENERATOR (50 Levels - FIXED LOGIC) ---
+        // Base Patterns (Indeks 0-6)
         var BASE = [
-            {s:5, g:[[1,0,0,0,2],[0,0,0,0,2],[0,3,3,0,0],[4,0,0,0,0],[4,0,1,5,5]]},
-            {s:5, g:[[4,4,0,0,1],[0,0,3,0,0],[1,0,3,0,0],[5,0,0,0,0],[5,0,0,2,2]]},
-            {s:6, g:[[1,0,0,2,0,0],[0,0,0,2,0,0],[0,3,4,0,0,0],[0,3,4,0,5,0],[0,0,0,0,5,0],[1,0,0,0,0,0]]},
-            {s:6, g:[[1,0,0,0,0,1],[0,0,3,3,0,0],[0,0,4,4,0,0],[0,0,0,0,2,2],[0,5,5,0,0,0],[0,0,0,0,0,0]]},
-            {s:7, g:[[1,0,0,0,0,0,2],[0,0,3,0,0,0,2],[0,0,3,0,4,0,0],[0,5,0,0,4,0,0],[0,5,0,0,0,0,6],[0,0,0,0,0,0,6],[1,0,0,0,0,0,0]]},
-            {s:8, g:[[1,0,0,0,0,0,2,0],[0,0,3,3,0,0,2,0],[0,0,4,0,0,0,0,0],[0,0,4,0,5,5,0,0],[0,0,0,0,0,0,0,0],[6,6,0,7,7,0,8,8],[0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0]]},
-            {s:9, g:[[1,0,0,0,2,0,0,0,3],[0,0,0,0,2,0,0,0,3],[0,0,4,4,0,5,5,0,0],[0,0,0,0,0,0,0,0,0],[0,0,6,6,0,7,7,0,0],[0,0,0,0,0,0,0,0,0],[0,8,8,0,9,9,0,0,0],[0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0]]}
+            {s:5, g:[[1,0,0,0,2],[0,0,0,0,2],[0,3,3,0,0],[4,0,0,0,0],[4,0,1,5,5]]}, // Idx 0 (5x5)
+            {s:5, g:[[4,4,0,0,1],[0,0,3,0,0],[1,0,3,0,0],[5,0,0,0,0],[5,0,0,2,2]]}, // Idx 1 (5x5)
+            {s:6, g:[[1,0,0,2,0,0],[0,0,0,2,0,0],[0,3,4,0,0,0],[0,3,4,0,5,0],[0,0,0,0,5,0],[1,0,0,0,0,0]]}, // Idx 2 (6x6)
+            {s:6, g:[[1,0,0,0,0,1],[0,0,3,3,0,0],[0,0,4,4,0,0],[0,0,0,0,2,2],[0,5,5,0,0,0],[0,0,0,0,0,0]]}, // Idx 3 (6x6)
+            {s:7, g:[[1,0,0,0,0,0,2],[0,0,3,0,0,0,2],[0,0,3,0,4,0,0],[0,5,0,0,4,0,0],[0,5,0,0,0,0,6],[0,0,0,0,0,0,6],[1,0,0,0,0,0,0]]}, // Idx 4 (7x7)
+            {s:8, g:[[1,0,0,0,0,0,2,0],[0,0,3,3,0,0,2,0],[0,0,4,0,0,0,0,0],[0,0,4,0,5,5,0,0],[0,0,0,0,0,0,0,0],[6,6,0,7,7,0,8,8],[0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0]]}, // Idx 5 (8x8)
+            {s:9, g:[[1,0,0,0,2,0,0,0,3],[0,0,0,0,2,0,0,0,3],[0,0,4,4,0,5,5,0,0],[0,0,0,0,0,0,0,0,0],[0,0,6,6,0,7,7,0,0],[0,0,0,0,0,0,0,0,0],[0,8,8,0,9,9,0,0,0],[0,0,0,0,0,0,0,0,0],[1,0,0,0,0,0,0,0,0]]}  // Idx 6 (9x9)
         ];
 
-        // Generate 50 Levels
+        // Generate 50 Levels dengan Logika Tiering
         var LEVELS = [];
         for(var i=0; i<50; i++) {
-            // Pilih base pattern secara berulang
-            var baseIdx = i % BASE.length;
+            var baseIdx = 0;
+
+            // LOGIKA BARU: Pilih map berdasarkan progress level agar makin sulit
+            if (i < 10) {
+                // Level 1-10: Gunakan map 5x5 (Base index 0 atau 1)
+                baseIdx = i % 2; 
+            } else if (i < 20) {
+                // Level 11-20: Gunakan map 6x6 (Base index 2 atau 3)
+                baseIdx = 2 + (i % 2);
+            } else if (i < 30) {
+                // Level 21-30: Gunakan map 7x7 (Base index 4)
+                baseIdx = 4;
+            } else if (i < 40) {
+                // Level 31-40: Gunakan map 8x8 (Base index 5)
+                baseIdx = 5;
+            } else {
+                // Level 41-50: Gunakan map 9x9 (Base index 6)
+                baseIdx = 6;
+            }
+
             var pattern = JSON.parse(JSON.stringify(BASE[baseIdx]));
             
-            // Tambahkan variasi rotasi agar tidak bosan
-            var rotations = i % 4;
+            // Tambahkan variasi rotasi agar tidak bosan (Random rotasi)
+            var rotations = (i + Math.floor(Math.random() * 3)) % 4;
             for(var r=0; r<rotations; r++) pattern.g = rotate(pattern.g);
             
-            // Waktu bertambah seiring level (mulai 20s, tambah 2s per level)
-            var time = 20 + (i * 2); 
-            if(time > 120) time = 120; // Max 2 menit
+            // Waktu bertambah seiring level
+            // Base 20 detik + (level * 2.5) -> Lebih menantang di level atas
+            var time = Math.floor(20 + (i * 2.5)); 
+            if(time > 150) time = 150; // Max waktu 2.5 menit
 
             LEVELS.push({ t: time, s: pattern.s, g: pattern.g });
         }

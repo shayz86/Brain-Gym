@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flow Master</title>
+    <title>Flow Master Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* RESET */
+        /* RESET & LAYOUT */
         html, body {
             margin: 0; padding: 0; width: 100%; height: 100%; height: 100dvh;
             background-color: #0f172a; color: white; font-family: 'Fredoka', sans-serif;
@@ -21,14 +21,11 @@
 
         /* SCREENS */
         .screen {
-            position: absolute; inset: 0; display: none; /* Default Hidden */
+            position: absolute; inset: 0; display: none;
             flex-direction: column; align-items: center; justify-content: center;
             padding: 20px; z-index: 10; background: #0f172a;
         }
-        
-        /* MENU WAJIB MUNCUL DULUAN */
         #screen-menu { display: flex; z-index: 50; }
-        
         .screen.active { display: flex !important; z-index: 60; }
 
         /* CANVAS */
@@ -42,26 +39,33 @@
         .btn-glow { position: relative; overflow: hidden; transition: transform 0.1s; cursor: pointer; }
         .btn-glow:active { transform: scale(0.95); filter: brightness(1.1); }
 
-        /* DEBUG BOX */
-        #error-log {
-            position: fixed; bottom: 0; left: 0; width: 100%; background: red; color: white;
-            font-size: 10px; padding: 2px; text-align: center; z-index: 9999; display: none;
+        /* OVERLAYS */
+        .overlay {
+            position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(5px); z-index: 100;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 16px;
         }
+        .overlay.show { display: flex; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from{transform:scale(0.8);opacity:0;} to{transform:scale(1);opacity:1;} }
+
+        /* ANIMATION */
+        .anim-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.05);} }
+        .text-warn { color: #f87171; text-shadow: 0 0 10px rgba(248,113,113,0.5); }
     </style>
 </head>
 <body>
 
-    <div id="error-log"></div>
-
     <div id="app-frame">
 
         <div id="screen-menu" class="screen">
-            <a href="../index.html" class="absolute top-6 left-6 bg-slate-800/80 px-4 py-2 rounded-full text-slate-300 font-bold text-sm no-underline btn-glow z-50">Menu</a>
+            <a href="../index.html" class="absolute top-6 left-6 bg-slate-800/80 px-4 py-2 rounded-full text-slate-300 font-bold text-sm no-underline btn-glow z-50 border border-slate-700">Menu</a>
 
             <div class="mb-12 text-center">
                 <h1 class="text-7xl font-bold tracking-tighter mb-0 text-blue-500">FLOW</h1>
                 <h1 class="text-7xl font-bold tracking-tighter text-pink-500">MASTER</h1>
-                <div class="mt-4 bg-slate-800 px-4 py-1 rounded-full text-xs font-bold border border-slate-700 text-slate-400">V22 • STABLE</div>
+                <div class="mt-4 bg-slate-800 px-4 py-1 rounded-full text-xs font-bold border border-slate-700 text-slate-400">V24 • DEAD END FIX</div>
             </div>
 
             <div class="w-full max-w-xs space-y-5">
@@ -87,15 +91,26 @@
             <div class="relative p-2 bg-slate-800/50 rounded-2xl border border-slate-700 shadow-2xl">
                 <canvas id="gameCanvas" width="350" height="350"></canvas>
                 
-                <div id="win-overlay" class="absolute inset-0 bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center hidden z-50 rounded-xl">
-                    <i class="fas fa-check-circle text-6xl text-emerald-500 mb-4 animate-bounce"></i>
-                    <h2 class="text-3xl font-bold text-white mb-2">SEMPURNA!</h2>
-                    <p class="text-slate-400 mb-6 text-xs text-center">Semua terhubung & penuh.</p>
+                <div id="overlay-win" class="overlay">
+                    <i class="fas fa-check-circle text-6xl text-emerald-500 mb-4 anim-pulse"></i>
+                    <h2 class="text-3xl font-bold text-white mb-2">SELESAI!</h2>
+                    <p class="text-slate-400 mb-6 text-xs text-center">Level Teratasi</p>
                     <button onclick="nextLevel()" ontouchstart="nextLevel()" class="btn-glow bg-emerald-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg border-b-4 border-emerald-700">LANJUT <i class="fas fa-arrow-right"></i></button>
+                </div>
+
+                <div id="overlay-lose" class="overlay">
+                    <i class="fas fa-times-circle text-6xl text-red-500 mb-4 anim-pulse"></i>
+                    <h2 class="text-3xl font-bold text-red-500 mb-2">WAKTU HABIS!</h2>
+                    <p class="text-slate-400 mb-6 text-xs text-center">Anda gagal menyelesaikan level.</p>
+                    <div class="flex flex-col gap-3 w-full max-w-[200px]">
+                        <button onclick="resetLevel()" ontouchstart="resetLevel()" class="btn-glow w-full bg-white text-slate-900 py-3 rounded-xl font-bold shadow-lg">COBA LAGI</button>
+                        <button onclick="showLeaderboard()" ontouchstart="showLeaderboard()" class="btn-glow w-full bg-slate-700 text-white py-3 rounded-xl font-bold border border-slate-600">LIHAT SKOR</button>
+                        <button onclick="goHome()" ontouchstart="goHome()" class="btn-glow w-full bg-slate-800 text-slate-400 py-3 rounded-xl font-bold border border-slate-700">MENU UTAMA</button>
+                    </div>
                 </div>
             </div>
             
-            <div class="mt-6 text-center text-slate-500 text-xs px-4">Hubungkan warna. Wajib isi semua kotak!</div>
+            <div class="mt-6 text-center text-slate-500 text-xs px-4">Hubungkan warna. Tidak boleh menembus titik akhir!</div>
         </div>
 
         <div id="screen-lb" class="screen">
@@ -111,31 +126,26 @@
     </div>
 
     <script>
-        // ERROR TRAP
-        window.onerror = function(msg, url, line) {
-            var e = document.getElementById('error-log');
-            e.style.display = 'block';
-            e.innerHTML = "ERR: " + msg + " (" + line + ")";
-        };
-
-        // --- DATA ---
+        // CONFIG
         var COLORS = { 1:'#ef4444', 2:'#3b82f6', 3:'#22c55e', 4:'#eab308', 5:'#d946ef', 6:'#f97316', 7:'#06b6d4', 8:'#94a3b8' };
+        
+        // LEVEL DATA
         var LEVELS = [
-            {size:5, grid:[[1,0,0,0,2],[0,0,0,0,2],[0,3,3,0,0],[4,0,0,0,0],[4,0,1,5,5]]},
-            {size:5, grid:[[4,4,0,0,1],[0,0,3,0,0],[1,0,3,0,0],[5,0,0,0,0],[5,0,0,2,2]]},
-            {size:6, grid:[[1,0,0,2,0,0],[0,0,0,2,0,0],[0,3,4,0,0,0],[0,3,4,0,5,0],[0,0,0,0,5,0],[1,0,0,0,0,0]]},
-            {size:6, grid:[[1,0,0,0,0,1],[0,0,3,3,0,0],[0,0,4,4,0,0],[0,0,0,0,2,2],[0,5,5,0,0,0],[0,0,0,0,0,0]]},
-            {size:7, grid:[[1,0,0,0,0,0,2],[0,0,3,0,0,0,2],[0,0,3,0,4,0,0],[0,5,0,0,4,0,0],[0,5,0,0,0,0,6],[0,0,0,0,0,0,6],[1,0,0,0,0,0,0]]}
+            {time: 20, size:5, grid:[[1,0,0,0,2],[0,0,0,0,2],[0,3,3,0,0],[4,0,0,0,0],[4,0,1,5,5]]},
+            {time: 30, size:5, grid:[[4,4,0,0,1],[0,0,3,0,0],[1,0,3,0,0],[5,0,0,0,0],[5,0,0,2,2]]},
+            {time: 40, size:6, grid:[[1,0,0,2,0,0],[0,0,0,2,0,0],[0,3,4,0,0,0],[0,3,4,0,5,0],[0,0,0,0,5,0],[1,0,0,0,0,0]]},
+            {time: 45, size:6, grid:[[1,0,0,0,0,1],[0,0,3,3,0,0],[0,0,4,4,0,0],[0,0,0,0,2,2],[0,5,5,0,0,0],[0,0,0,0,0,0]]},
+            {time: 60, size:7, grid:[[1,0,0,0,0,0,2],[0,0,3,0,0,0,2],[0,0,3,0,4,0,0],[0,5,0,0,4,0,0],[0,5,0,0,0,0,6],[0,0,0,0,0,0,6],[1,0,0,0,0,0,0]]}
         ];
 
-        // --- GLOBAL VARS (V19 STYLE - PROVEN) ---
+        // GLOBAL VARS
         var currentLevel = 0;
         var grid = [];
         var paths = {};
         var activeColor = null;
-        var completed = false;
+        var isLocked = false; 
         var timer = null;
-        var startTime = 0;
+        var timeLeft = 0;
         var canvas, ctx, cellSize, gridSize;
 
         // --- NAVIGATION ---
@@ -143,7 +153,6 @@
             var screens = document.querySelectorAll('.screen');
             for(var i=0; i<screens.length; i++) screens[i].classList.remove('active');
             document.getElementById(id).classList.add('active');
-            if(id === 'screen-game') setTimeout(resize, 50);
         }
 
         function startGame() {
@@ -167,38 +176,39 @@
         function nextLevel() {
             currentLevel++;
             if(currentLevel >= LEVELS.length) {
-                alert("TAMAT! ANDA MASTER!");
+                alert("TAMAT! ANDA JUARA!");
                 goHome();
             } else {
                 loadLevel(currentLevel);
             }
         }
 
-        // --- GAMEPLAY ---
+        // --- GAME LOGIC ---
         function loadLevel(idx) {
             var lvl = LEVELS[idx];
             gridSize = lvl.size;
             grid = JSON.parse(JSON.stringify(lvl.grid));
             paths = {};
             activeColor = null;
-            completed = false;
+            isLocked = false;
+            timeLeft = lvl.time;
 
             // Init Paths
-            for(var r=0; r<gridSize; r++) {
-                for(var c=0; c<gridSize; c++) {
-                    var v = grid[r][c];
-                    if(v > 0) paths[v] = [];
-                }
+            for(var r=0; r<gridSize; r++) for(var c=0; c<gridSize; c++) {
+                var v = grid[r][c];
+                if(v > 0) paths[v] = [];
             }
 
+            // UI RESET
             document.getElementById('ui-level').innerText = idx + 1;
-            document.getElementById('ui-timer').innerText = "00:00";
-            document.getElementById('win-overlay').classList.add('hidden');
+            document.getElementById('overlay-win').classList.remove('show');
+            document.getElementById('overlay-lose').classList.remove('show');
+            document.getElementById('overlay-win').style.display = 'none'; 
+            document.getElementById('overlay-lose').style.display = 'none';
             
             initCanvas();
             resize();
             startTimer();
-            saveData(idx);
         }
 
         function initCanvas() {
@@ -206,15 +216,17 @@
             canvas = document.getElementById('gameCanvas');
             ctx = canvas.getContext('2d');
             
-            // Mouse
-            canvas.addEventListener('mousedown', function(e){ onDown(e); });
-            canvas.addEventListener('mousemove', function(e){ onMove(e); });
-            window.addEventListener('mouseup', function(){ onUp(); });
-            
-            // Touch
-            canvas.addEventListener('touchstart', function(e){ e.preventDefault(); onDown(e.touches[0]); }, {passive: false});
-            canvas.addEventListener('touchmove', function(e){ e.preventDefault(); onMove(e.touches[0]); }, {passive: false});
-            window.addEventListener('touchend', function(){ onUp(); });
+            var start = function(e) { handleInputStart(e); };
+            var move = function(e) { handleInputMove(e); };
+            var end = function(e) { handleInputEnd(e); };
+
+            canvas.addEventListener('mousedown', start);
+            canvas.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', end);
+
+            canvas.addEventListener('touchstart', function(e) { e.preventDefault(); start(e.touches[0]); }, {passive: false});
+            canvas.addEventListener('touchmove', function(e) { e.preventDefault(); move(e.touches[0]); }, {passive: false});
+            window.addEventListener('touchend', end);
             
             window.addEventListener('resize', resize);
         }
@@ -228,7 +240,7 @@
             draw();
         }
 
-        // --- INPUT & LOGIC (CUTTING ENABLED) ---
+        // --- INPUT & LOGIC (V24 - FIXED DEAD END) ---
         function getPos(e) {
             var r = canvas.getBoundingClientRect();
             return {
@@ -237,30 +249,26 @@
             };
         }
 
-        function onDown(e) {
-            if(completed) return;
+        function handleInputStart(e) {
+            if(isLocked) return;
             var p = getPos(e);
             if(p.r<0 || p.r>=gridSize || p.c<0 || p.c>=gridSize) return;
 
-            var val = grid[p.r][p.c]; // Nilai di grid saat ini
-            var base = LEVELS[currentLevel].grid[p.r][p.c]; // Nilai di level asli
+            var val = grid[p.r][p.c];
+            var base = LEVELS[currentLevel].grid[p.r][p.c];
 
             if(val > 0) {
                 activeColor = val;
                 
-                // Jika klik ENDPOINT ASLI -> Reset jalur
+                // Jika klik ENDPOINT -> Reset jalur
                 if(base > 0) {
                     paths[val] = [{r:p.r, c:p.c}];
                     updateGrid();
-                } 
-                // Jika klik JALUR SENDIRI -> Potong jalur (Resume)
-                else {
+                } else {
+                    // Jika klik Jalur -> Potong
                     var path = paths[val];
                     var idx = -1;
-                    // Cari index di path
-                    for(var i=0; i<path.length; i++) {
-                        if(path[i].r === p.r && path[i].c === p.c) { idx = i; break; }
-                    }
+                    for(var i=0; i<path.length; i++) if(path[i].r===p.r && path[i].c===p.c) idx=i;
                     if(idx !== -1) {
                         paths[val] = path.slice(0, idx+1);
                         updateGrid();
@@ -270,188 +278,161 @@
             }
         }
 
-        function onMove(e) {
-            if(!activeColor || completed) return;
+        function handleInputMove(e) {
+            if(!activeColor || isLocked) return;
             var p = getPos(e);
             if(p.r<0 || p.r>=gridSize || p.c<0 || p.c>=gridSize) return;
 
             var path = paths[activeColor];
             var last = path[path.length-1];
 
-            // Cek Tetangga
+            // Pindah kotak & Tetangga
             if((last.r!==p.r || last.c!==p.c) && (Math.abs(last.r-p.r)+Math.abs(last.c-p.c)===1)) {
                 
                 var targetBase = LEVELS[currentLevel].grid[p.r][p.c];
                 var targetCurr = grid[p.r][p.c];
 
-                // 1. BACKTRACK (Mundur)
-                var idx = -1;
-                for(var i=0; i<path.length; i++) if(path[i].r===p.r && path[i].c===p.c) idx=i;
-                if(idx !== -1) {
-                    paths[activeColor] = path.slice(0, idx+1);
+                // 1. BACKTRACK (Mundur di jalur sendiri) - SELALU BOLEH
+                var selfIdx = -1;
+                for(var i=0; i<path.length; i++) if(path[i].r===p.r && path[i].c===p.c) selfIdx=i;
+                if(selfIdx !== -1) {
+                    paths[activeColor] = path.slice(0, selfIdx+1);
                     updateGrid(); draw(); return;
                 }
 
-                // 2. VALIDASI MAJU
+                // 2. CEK APAKAH KITA SEDANG DI ENDPOINT? (DEAD END CHECK)
+                // Jika posisi "last" (titik kita berdiri skrg) adalah Endpoint warna sendiri,
+                // Kita TIDAK BOLEH maju lagi (kecuali mundur/backtrack di atas).
+                // Ini mencegah garis "Tembus" keluar dari titik.
+                var currentStandingBase = LEVELS[currentLevel].grid[last.r][last.c];
+                if(currentStandingBase === activeColor && path.length > 1) {
+                    // Kita sudah sampai tujuan (path>1 memastikan bukan saat baru mulai tarik)
+                    // JANGAN GERAK.
+                    return; 
+                }
+
+                // 3. CEK TABRAKAN MAJU
                 // Dilarang tabrak Endpoint Orang Lain
                 if(targetBase > 0 && targetBase !== activeColor) return;
 
-                // 3. FITUR CUTTING (Potong Jalur Orang Lain)
+                // 4. FITUR CUTTING (Potong Jalur Orang Lain)
                 if(targetCurr > 0 && targetCurr !== activeColor) {
-                    // Cari jalur siapa ini
-                    var owner = targetCurr;
-                    var ownerPath = paths[owner];
-                    // Cari index tabrakan
+                    var victimColor = targetCurr;
+                    var victimPath = paths[victimColor];
                     var cutIdx = -1;
-                    for(var j=0; j<ownerPath.length; j++) {
-                        if(ownerPath[j].r === p.r && ownerPath[j].c === p.c) { cutIdx = j; break; }
+                    for(var j=0; j<victimPath.length; j++) {
+                        if(victimPath[j].r === p.r && victimPath[j].c === p.c) { cutIdx = j; break; }
                     }
                     if(cutIdx !== -1) {
-                        paths[owner] = ownerPath.slice(0, cutIdx); // Potong
-                        // Grid akan direfresh total di updateGrid()
+                        paths[victimColor] = victimPath.slice(0, cutIdx);
                     }
                 }
 
+                // Execute Move
                 path.push({r:p.r, c:p.c});
-                updateGrid();
+                updateGrid(); 
                 draw();
                 checkWin();
             }
         }
 
-        function onUp() { activeColor = null; }
+        function handleInputEnd() { activeColor = null; }
 
         function updateGrid() {
             var base = LEVELS[currentLevel].grid;
-            // 1. Reset ke Base
-            for(var r=0; r<gridSize; r++) {
-                for(var c=0; c<gridSize; c++) {
-                    grid[r][c] = (base[r][c] > 0) ? base[r][c] : 0;
-                }
+            for(var r=0; r<gridSize; r++) for(var c=0; c<gridSize; c++) {
+                grid[r][c] = (base[r][c] > 0) ? base[r][c] : 0;
             }
-            // 2. Tulis Jalur Baru
             for(var k in paths) {
                 var id = parseInt(k);
                 var p = paths[k];
-                for(var i=0; i<p.length; i++) {
-                    grid[p[i].r][p[i].c] = id;
-                }
+                for(var i=0; i<p.length; i++) grid[p[i].r][p[i].c] = id;
             }
         }
 
-        // --- DRAWING ---
         function draw() {
             ctx.clearRect(0,0,canvas.width,canvas.height);
-            
-            // Grid Lines
+            // Grid
             ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.beginPath();
             for(var i=0; i<=gridSize; i++) {
-                var p=i*cellSize;
-                ctx.moveTo(p,0); ctx.lineTo(p,canvas.height);
-                ctx.moveTo(0,p); ctx.lineTo(canvas.width,p);
+                var p=i*cellSize; ctx.moveTo(p,0); ctx.lineTo(p,canvas.height); ctx.moveTo(0,p); ctx.lineTo(canvas.width,p);
             }
             ctx.stroke();
-
             // Paths
             for(var k in paths) {
-                var p = paths[k];
-                if(p.length<2) continue;
-                ctx.strokeStyle = COLORS[k];
-                ctx.lineWidth = cellSize*0.45;
+                var p = paths[k]; if(p.length<2) continue;
+                ctx.strokeStyle = COLORS[k]; ctx.lineWidth = cellSize*0.45;
                 ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.shadowBlur = 10; ctx.shadowColor = COLORS[k]; // GLOW
-                ctx.beginPath();
-                ctx.moveTo(p[0].c*cellSize+cellSize/2, p[0].r*cellSize+cellSize/2);
+                ctx.shadowBlur = 10; ctx.shadowColor = COLORS[k];
+                ctx.beginPath(); ctx.moveTo(p[0].c*cellSize+cellSize/2, p[0].r*cellSize+cellSize/2);
                 for(var j=1; j<p.length; j++) ctx.lineTo(p[j].c*cellSize+cellSize/2, p[j].r*cellSize+cellSize/2);
-                ctx.stroke();
-                ctx.shadowBlur = 0;
+                ctx.stroke(); ctx.shadowBlur = 0;
             }
-
-            // Dots
+            // Endpoints
             var base = LEVELS[currentLevel].grid;
             for(var r=0; r<gridSize; r++) for(var c=0; c<gridSize; c++) {
                 var v = base[r][c];
                 if(v > 0) {
-                    ctx.fillStyle = COLORS[v];
-                    var cx=c*cellSize+cellSize/2, cy=r*cellSize+cellSize/2;
+                    ctx.fillStyle = COLORS[v]; var cx=c*cellSize+cellSize/2, cy=r*cellSize+cellSize/2;
                     ctx.beginPath(); ctx.arc(cx, cy, cellSize*0.3, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle='rgba(255,255,255,0.4)';
-                    ctx.beginPath(); ctx.arc(cx, cy, cellSize*0.1, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(cx, cy, cellSize*0.1, 0, Math.PI*2); ctx.fill();
                 }
             }
         }
 
-        // --- WIN LOGIC (STRICT) ---
         function checkWin() {
-            // 1. Cek Full
-            for(var r=0; r<gridSize; r++) for(var c=0; c<gridSize; c++) {
-                if(grid[r][c] === 0) return; // Ada yang kosong
-            }
+            var size = gridSize;
+            var base = LEVELS[currentLevel].grid;
+            
+            // 1. Cek Penuh
+            for(var r=0; r<size; r++) for(var c=0; c<size; c++) if(grid[r][c] === 0) return;
 
             // 2. Cek Koneksi (Ujung ke Ujung)
-            var base = LEVELS[currentLevel].grid;
-            var needed = {};
-            for(var r=0; r<gridSize; r++) for(var c=0; c<gridSize; c++) if(base[r][c]>0) needed[base[r][c]] = true;
-
-            for(var k in needed) {
+            for(var k in paths) {
                 var p = paths[k];
-                if(!p || p.length < 2) return; // Jalur putus/pendek
-
-                // Cari 2 endpoint di level
-                var eps = [];
-                for(var r=0; r<gridSize; r++) for(var c=0; c<gridSize; c++) {
-                    if(base[r][c] == k) eps.push({r:r, c:c});
-                }
-
-                var h = p[0];
-                var t = p[p.length-1];
-
-                // Cek apakah jalur menyentuh kedua endpoint
-                var match = (h.r==eps[0].r && h.c==eps[0].c && t.r==eps[1].r && t.c==eps[1].c) ||
-                            (h.r==eps[1].r && h.c==eps[1].c && t.r==eps[0].r && t.c==eps[0].c);
-                
-                if(!match) return;
+                if(p.length < 2) return;
+                var h = p[0]; var t = p[p.length-1];
+                if(base[h.r][h.c] != k || base[t.r][t.c] != k) return;
             }
 
-            completed = true;
+            // MENANG
+            isLocked = true;
             clearInterval(timer);
-            document.getElementById('win-overlay').classList.remove('hidden');
-            saveData(currentLevel+1);
+            var el = document.getElementById('overlay-win');
+            el.style.display = 'flex';
+            el.classList.add('show');
+            saveScore(currentLevel+1);
         }
 
-        // --- UTILS ---
+        function gameOver() {
+            isLocked = true;
+            clearInterval(timer);
+            var el = document.getElementById('overlay-lose');
+            el.style.display = 'flex';
+            el.classList.add('show');
+        }
+
+        // --- TIMER ---
         function startTimer() {
             clearInterval(timer);
-            startTime = Date.now();
+            updateTimerDisplay();
+            
             timer = setInterval(function(){
-                var d = Math.floor((Date.now()-startTime)/1000);
-                var m = Math.floor(d/60).toString().padStart(2,'0');
-                var s = (d%60).toString().padStart(2,'0');
-                document.getElementById('ui-timer').innerText = m+":"+s;
+                timeLeft--;
+                updateTimerDisplay();
+                if(timeLeft <= 0) {
+                    gameOver();
+                }
             }, 1000);
         }
 
-        function saveData(lvl) {
-            var s = JSON.parse(localStorage.getItem('flowV22')||"[]");
-            var f = false;
-            for(var i=0; i<s.length; i++) if(s[i].n==='YOU') { s[i].l = Math.max(s[i].l, lvl); f=true; }
-            if(!f) s.push({n:'YOU', l:lvl});
-            localStorage.setItem('flowV22', JSON.stringify(s));
+        function updateTimerDisplay() {
+            var m = Math.floor(timeLeft/60).toString().padStart(2,'0');
+            var s = (timeLeft%60).toString().padStart(2,'0');
+            var el = document.getElementById('ui-timer');
+            el.innerText = m+":"+s;
+            if(timeLeft <= 10) el.classList.add('text-warn');
+            else el.classList.remove('text-warn');
         }
 
-        function renderLb() {
-            var s = JSON.parse(localStorage.getItem('flowV22')||"[]");
-            if(s.length===0) s=[{n:'PRO', l:50}];
-            s.sort(function(a,b){return b.l-a.l});
-            var l = document.getElementById('lb-list');
-            l.innerHTML = '';
-            for(var i=0; i<s.length; i++) {
-                var d = document.createElement('div');
-                d.className = "flex justify-between p-3 border-b border-slate-700 text-xs text-slate-300";
-                d.innerHTML = '<span class="w-8 font-bold text-yellow-500">#'+(i+1)+'</span><span class="flex-1">'+s[i].n+'</span><span class="text-blue-400 font-mono">Lvl '+s[i].l+'</span>';
-                l.appendChild(d);
-            }
-        }
-    </script>
-</body>
-</html>
+   

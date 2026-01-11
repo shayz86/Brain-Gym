@@ -11,7 +11,6 @@
         #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
         
-        /* Overlay menggunakan Inline Style untuk display agar mudah di-override JS */
         #overlay { position: absolute; inset: 0; z-index: 9999; background-color: rgba(0,0,0,0.9); }
         
         .interactive { pointer-events: auto; cursor: pointer; }
@@ -44,7 +43,7 @@
             </div>
         </div>
         <div class="text-center pb-4 opacity-50 pointer-events-none">
-            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Geser area kosong untuk putar kamera</p>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Geser area kosong untuk putar kamera. Swipe cepat untuk jalan.</p>
         </div>
     </div>
 
@@ -83,24 +82,15 @@
     <div id="game-container"></div>
 
     <script>
-        // --- 1. DEFINISI UI & TOMBOL (Ditaruh Paling Atas) ---
-        // Ini menjamin tombol tetap bekerja meskipun Game Engine di bawahnya error.
-
+        // --- 1. UI CONTROL ---
         window.isGameActive = false;
         
         window.startGame = function() {
-            // Langsung hilangkan overlay tanpa syarat
             const overlay = document.getElementById('overlay');
             if(overlay) overlay.style.display = 'none';
-            
-            // Aktifkan status game
             window.isGameActive = true;
-            
-            // Coba reset level (jika engine sudah siap)
             if (typeof window.loadLevel === 'function') {
                 window.loadLevel(window.currentLevelIndex);
-            } else {
-                console.warn("Game engine belum siap sepenuhnya, tapi UI sudah merespon.");
             }
         };
 
@@ -111,7 +101,7 @@
             const btnEl = document.querySelector('#overlay button'); 
 
             if(titleEl) titleEl.innerText = title;
-            if(descEl) descEl.innerText = desc;
+            if(descEl) descEl.innerHTML = desc;
             if(btnEl) {
                 btnEl.innerText = btnText;
                 btnEl.onclick = function() { nextAction(); };
@@ -131,10 +121,7 @@
         };
 
         // --- 2. GAME ENGINE ---
-        // Dibungkus Try-Catch agar jika error tidak mematikan fungsi tombol di atas
-
         try {
-            // Variabel Global Engine
             window.currentLevelIndex = 0;
             let scene, camera, renderer, playerMesh;
             let tileMeshes = [];
@@ -144,10 +131,12 @@
             let isMoving = false;
             window.cameraAngle = 0;
             let cameraZoom = 14;
+            
+            // Input Vars
             let isDragging = false;
-            let prevMouse = { x: 0, y: 0 };
+            let startMouse = { x: 0, y: 0 };
+            let lastMouse = { x: 0, y: 0 };
 
-            // Konfigurasi
             const TILE_SIZE = 1.2;
             const TOTAL_LEVELS = 50;
             const THEMES = [
@@ -231,14 +220,13 @@
                 }
             }
 
-            // Dibuat Global agar bisa diakses fungsi reset
             window.loadLevel = function(idx) {
                 if(playerMesh) scene.remove(playerMesh);
                 tileMeshes.forEach(m => scene.remove(m));
                 tileMeshes = [];
 
                 const levelData = levels[idx];
-                if (!levelData) return; // Safety check
+                if (!levelData) return;
                 
                 currentMap = JSON.parse(JSON.stringify(levelData.map));
                 playerPos = { ...levelData.start };
@@ -395,4 +383,108 @@
                     case 'ArrowUp': case 'w': move('up'); break;
                     case 'ArrowDown': case 's': move('down'); break;
                     case 'ArrowLeft': case 'a': move('left'); break;
-                    case 'ArrowRight': case 'd': move('right'); bre
+                    case 'ArrowRight': case 'd': move('right'); break;
+                }
+            }
+
+            // --- INPUT HANDLING (SWIPE & CAMERA) ---
+            function setupInputHandlers() {
+                const c = document.getElementById('game-container');
+                
+                // Mouse & Touch START
+                const start = (x, y) => {
+                    isDragging = true;
+                    startMouse.x = x; startMouse.y = y;
+                    lastMouse.x = x; lastMouse.y = y;
+                };
+
+                // Mouse & Touch MOVE
+                const dragging = (x, y) => {
+                    if(!isDragging) return;
+                    const dx = x - lastMouse.x;
+                    window.cameraAngle -= dx * 0.005; // Rotasi Kamera
+                    window.updateCameraPosition();
+                    lastMouse.x = x; lastMouse.y = y;
+                };
+
+                // Mouse & Touch END
+                const end = (x, y) => {
+                    if(!isDragging) return;
+                    isDragging = false;
+
+                    // Deteksi Swipe Cepat (Jika gerak sedikit tapi cepat)
+                    const dx = x - startMouse.x;
+                    const dy = y - startMouse.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist < 50 && dist > 10) { // Toleransi tap vs swipe
+                         // Logika swipe kecil mungkin tidak diperlukan jika ada rotasi
+                    }
+                    
+                    // Logic Swipe Sederhana untuk Move (Jika gerakan cepat dan lurus)
+                    if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                        // Jika drag terlalu panjang, dianggap rotasi kamera.
+                        // Jika cepat (bisa ditambahkan timer), dianggap swipe.
+                        // Di sini kita pakai logika: Drag Horizontal = Kamera, Drag Vertikal = Jalan?
+                        // Agar tidak bingung, kita pakai logika sederhana:
+                        // User "melempar" (swipe) = Jalan.
+                        // User "menahan & geser" = Kamera.
+                        // Tapi ini kompleks. Kita pakai: Swipe = Jalan.
+                        
+                        // Override rotasi jika swipe tajam
+                        if(Math.abs(dx) > Math.abs(dy)) {
+                           if(dx > 50) move('right');
+                           else if(dx < -50) move('left');
+                        } else {
+                           if(dy > 50) move('down');
+                           else if(dy < -50) move('up');
+                        }
+                    }
+                };
+
+                c.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+                window.addEventListener('mousemove', e => dragging(e.clientX, e.clientY));
+                window.addEventListener('mouseup', e => end(e.clientX, e.clientY));
+
+                c.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY), {passive:false});
+                window.addEventListener('touchmove', e => {
+                     // Prevent scroll
+                    if(e.cancelable) e.preventDefault(); 
+                    dragging(e.touches[0].clientX, e.touches[0].clientY);
+                }, {passive:false});
+                window.addEventListener('touchend', e => {
+                    // Touchend tidak punya clientX, pakai lastMouse
+                    end(lastMouse.x, lastMouse.y);
+                });
+            }
+
+            window.updateCameraPosition = function() {
+                if(!camera) return;
+                camera.position.x = Math.sin(window.cameraAngle) * cameraZoom;
+                camera.position.z = Math.cos(window.cameraAngle) * cameraZoom;
+                camera.position.y = cameraZoom * 0.8; 
+                camera.lookAt(0, 0, 0);
+            }
+
+            function onWindowResize() {
+                if(!camera || !renderer) return;
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if(renderer && scene && camera) renderer.render(scene, camera);
+            }
+
+            // Jalankan
+            init();
+
+        } catch (err) {
+            console.error("Game Error:", err);
+            alert("Terjadi kesalahan loading game. Coba refresh.");
+        }
+    </script>
+</body>
+</html>

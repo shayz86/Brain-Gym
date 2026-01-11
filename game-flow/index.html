@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* RESET & LAYOUT */
+        /* RESET */
         html, body {
             margin: 0; padding: 0; width: 100%; height: 100%; height: 100dvh;
             background-color: #0f172a; color: white; font-family: 'Fredoka', sans-serif;
@@ -65,7 +65,7 @@
             <div class="mb-12 text-center">
                 <h1 class="text-7xl font-bold tracking-tighter mb-0 text-blue-500">FLOW</h1>
                 <h1 class="text-7xl font-bold tracking-tighter text-pink-500">MASTER</h1>
-                <div class="mt-4 bg-slate-800 px-4 py-1 rounded-full text-xs font-bold border border-slate-700 text-slate-400">V24 • DEAD END FIX</div>
+                <div class="mt-4 bg-slate-800 px-4 py-1 rounded-full text-xs font-bold border border-slate-700 text-slate-400">CHALLENGE MODE</div>
             </div>
 
             <div class="w-full max-w-xs space-y-5">
@@ -102,6 +102,7 @@
                     <i class="fas fa-times-circle text-6xl text-red-500 mb-4 anim-pulse"></i>
                     <h2 class="text-3xl font-bold text-red-500 mb-2">WAKTU HABIS!</h2>
                     <p class="text-slate-400 mb-6 text-xs text-center">Anda gagal menyelesaikan level.</p>
+                    
                     <div class="flex flex-col gap-3 w-full max-w-[200px]">
                         <button onclick="resetLevel()" ontouchstart="resetLevel()" class="btn-glow w-full bg-white text-slate-900 py-3 rounded-xl font-bold shadow-lg">COBA LAGI</button>
                         <button onclick="showLeaderboard()" ontouchstart="showLeaderboard()" class="btn-glow w-full bg-slate-700 text-white py-3 rounded-xl font-bold border border-slate-600">LIHAT SKOR</button>
@@ -110,7 +111,7 @@
                 </div>
             </div>
             
-            <div class="mt-6 text-center text-slate-500 text-xs px-4">Hubungkan warna. Tidak boleh menembus titik akhir!</div>
+            <div class="mt-6 text-center text-slate-500 text-xs px-4">Tarik garis. Tabrak garis lain untuk memotongnya.</div>
         </div>
 
         <div id="screen-lb" class="screen">
@@ -129,7 +130,7 @@
         // CONFIG
         var COLORS = { 1:'#ef4444', 2:'#3b82f6', 3:'#22c55e', 4:'#eab308', 5:'#d946ef', 6:'#f97316', 7:'#06b6d4', 8:'#94a3b8' };
         
-        // LEVEL DATA
+        // DATA LEVEL (Dengan Waktu per Level)
         var LEVELS = [
             {time: 20, size:5, grid:[[1,0,0,0,2],[0,0,0,0,2],[0,3,3,0,0],[4,0,0,0,0],[4,0,1,5,5]]},
             {time: 30, size:5, grid:[[4,4,0,0,1],[0,0,3,0,0],[1,0,3,0,0],[5,0,0,0,0],[5,0,0,2,2]]},
@@ -143,7 +144,7 @@
         var grid = [];
         var paths = {};
         var activeColor = null;
-        var isLocked = false; 
+        var isLocked = false; // Kunci input saat menang/kalah
         var timer = null;
         var timeLeft = 0;
         var canvas, ctx, cellSize, gridSize;
@@ -191,7 +192,7 @@
             paths = {};
             activeColor = null;
             isLocked = false;
-            timeLeft = lvl.time;
+            timeLeft = lvl.time; // Set waktu dari config level
 
             // Init Paths
             for(var r=0; r<gridSize; r++) for(var c=0; c<gridSize; c++) {
@@ -203,6 +204,7 @@
             document.getElementById('ui-level').innerText = idx + 1;
             document.getElementById('overlay-win').classList.remove('show');
             document.getElementById('overlay-lose').classList.remove('show');
+            document.getElementById('win-overlay').style.display = 'none'; // Safety
             document.getElementById('overlay-win').style.display = 'none'; 
             document.getElementById('overlay-lose').style.display = 'none';
             
@@ -240,7 +242,7 @@
             draw();
         }
 
-        // --- INPUT & LOGIC (V24 - FIXED DEAD END) ---
+        // --- INPUT & CUTTING LOGIC (FIXED FOR V23) ---
         function getPos(e) {
             var r = canvas.getBoundingClientRect();
             return {
@@ -265,7 +267,8 @@
                     paths[val] = [{r:p.r, c:p.c}];
                     updateGrid();
                 } else {
-                    // Jika klik Jalur -> Potong
+                    // Jika klik Jalur -> Potong (Resume)
+                    // (Logic ini otomatis memotong jalur sendiri jika diklik di tengah)
                     var path = paths[val];
                     var idx = -1;
                     for(var i=0; i<path.length; i++) if(path[i].r===p.r && path[i].c===p.c) idx=i;
@@ -292,7 +295,7 @@
                 var targetBase = LEVELS[currentLevel].grid[p.r][p.c];
                 var targetCurr = grid[p.r][p.c];
 
-                // 1. BACKTRACK (Mundur di jalur sendiri) - SELALU BOLEH
+                // 1. BACKTRACK (Mundur di jalur sendiri)
                 var selfIdx = -1;
                 for(var i=0; i<path.length; i++) if(path[i].r===p.r && path[i].c===p.c) selfIdx=i;
                 if(selfIdx !== -1) {
@@ -300,37 +303,32 @@
                     updateGrid(); draw(); return;
                 }
 
-                // 2. CEK APAKAH KITA SEDANG DI ENDPOINT? (DEAD END CHECK)
-                // Jika posisi "last" (titik kita berdiri skrg) adalah Endpoint warna sendiri,
-                // Kita TIDAK BOLEH maju lagi (kecuali mundur/backtrack di atas).
-                // Ini mencegah garis "Tembus" keluar dari titik.
-                var currentStandingBase = LEVELS[currentLevel].grid[last.r][last.c];
-                if(currentStandingBase === activeColor && path.length > 1) {
-                    // Kita sudah sampai tujuan (path>1 memastikan bukan saat baru mulai tarik)
-                    // JANGAN GERAK.
-                    return; 
-                }
-
-                // 3. CEK TABRAKAN MAJU
+                // 2. CEK TABRAKAN
                 // Dilarang tabrak Endpoint Orang Lain
                 if(targetBase > 0 && targetBase !== activeColor) return;
 
-                // 4. FITUR CUTTING (Potong Jalur Orang Lain)
+                // 3. FITUR CUTTING (Potong Jalur Orang Lain)
                 if(targetCurr > 0 && targetCurr !== activeColor) {
+                    // Kita akan menimpa jalur ini.
+                    // Cari warna apa yang kita tabrak
                     var victimColor = targetCurr;
                     var victimPath = paths[victimColor];
+                    
+                    // Potong jalur korban sampai SEBELUM titik ini
                     var cutIdx = -1;
                     for(var j=0; j<victimPath.length; j++) {
                         if(victimPath[j].r === p.r && victimPath[j].c === p.c) { cutIdx = j; break; }
                     }
+                    
                     if(cutIdx !== -1) {
+                        // Potong jalur korban
                         paths[victimColor] = victimPath.slice(0, cutIdx);
                     }
                 }
 
                 // Execute Move
                 path.push({r:p.r, c:p.c});
-                updateGrid(); 
+                updateGrid(); // Ini akan merefresh grid berdasarkan path yang baru dipotong
                 draw();
                 checkWin();
             }
@@ -340,9 +338,11 @@
 
         function updateGrid() {
             var base = LEVELS[currentLevel].grid;
+            // 1. Reset ke Base (0 atau endpoint)
             for(var r=0; r<gridSize; r++) for(var c=0; c<gridSize; c++) {
                 grid[r][c] = (base[r][c] > 0) ? base[r][c] : 0;
             }
+            // 2. Timpa dengan Path
             for(var k in paths) {
                 var id = parseInt(k);
                 var p = paths[k];
@@ -387,11 +387,13 @@
             // 1. Cek Penuh
             for(var r=0; r<size; r++) for(var c=0; c<size; c++) if(grid[r][c] === 0) return;
 
-            // 2. Cek Koneksi (Ujung ke Ujung)
+            // 2. Cek Koneksi (Head to Tail = Endpoint to Endpoint)
             for(var k in paths) {
                 var p = paths[k];
                 if(p.length < 2) return;
+                
                 var h = p[0]; var t = p[p.length-1];
+                // Cek apakah Head & Tail berada di Endpoint (Base Grid)
                 if(base[h.r][h.c] != k || base[t.r][t.c] != k) return;
             }
 
@@ -399,7 +401,7 @@
             isLocked = true;
             clearInterval(timer);
             var el = document.getElementById('overlay-win');
-            el.style.display = 'flex';
+            el.style.display = 'flex'; // Force display
             el.classList.add('show');
             saveScore(currentLevel+1);
         }
@@ -412,7 +414,7 @@
             el.classList.add('show');
         }
 
-        // --- TIMER ---
+        // --- TIMER COUNTDOWN ---
         function startTimer() {
             clearInterval(timer);
             updateTimerDisplay();
@@ -430,9 +432,4 @@
             var m = Math.floor(timeLeft/60).toString().padStart(2,'0');
             var s = (timeLeft%60).toString().padStart(2,'0');
             var el = document.getElementById('ui-timer');
-            el.innerText = m+":"+s;
-            if(timeLeft <= 10) el.classList.add('text-warn');
-            else el.classList.remove('text-warn');
-        }
-
-   
+            el.

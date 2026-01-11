@@ -2,574 +2,586 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Kubus Logika - Time Attack</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kubus Logika - 50 Levels</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #0f172a; touch-action: none; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; overflow: hidden; background-color: #0f172a; touch-action: none; font-family: 'Segoe UI', sans-serif; user-select: none; -webkit-user-select: none; }
         #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        
-        /* UI Layers */
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
-        .interactive { pointer-events: auto; cursor: pointer; }
-        
-        /* Glassmorphism Panels */
+        .interactive { pointer-events: auto; }
         .glass-panel {
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
         }
-
-        /* Modals & Overlays */
-        #overlay, #confirm-modal, #leaderboard-modal, #game-over-modal {
-            position: absolute; inset: 0; z-index: 50;
-            display: flex; align-items: center; justify-content: center;
-            background-color: rgba(15, 23, 42, 0.98);
-        }
-
-        /* Timer Bar Animation */
-        .timer-container { width: 100%; height: 6px; background: #334155; border-radius: 99px; overflow: hidden; margin-top: 8px; }
-        .timer-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); transition: width 1s linear; }
-        .timer-critical { background: #ef4444; animation: pulse 0.5s infinite; }
-        
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-
-        /* Scrollbar for Leaderboard */
-        .scroller::-webkit-scrollbar { width: 4px; }
-        .scroller::-webkit-scrollbar-track { background: #1e293b; }
-        .scroller::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
     </style>
 </head>
 <body>
 
-    <div id="ui-layer" class="flex flex-col justify-between p-4 h-full hidden">
-        <div class="w-full max-w-lg mx-auto pointer-events-none">
-            <div class="flex justify-between items-start text-white">
-                <div>
-                    <h1 class="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">KUBUS LOGIKA</h1>
-                    <div class="flex items-baseline gap-2 mt-1">
-                        <span class="text-xs text-gray-400">LEVEL</span>
-                        <span id="hud-level" class="text-xl font-mono font-bold text-white">1</span>
-                        <span class="text-xs text-gray-600">/ 50</span>
+    <div id="ui-layer" class="flex flex-col justify-between p-4 h-full">
+        <div class="flex justify-between items-start text-white w-full max-w-5xl mx-auto">
+            <div>
+                <h1 class="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 drop-shadow-sm">KUBUS LOGIKA</h1>
+                <div class="flex gap-4 mt-1">
+                    <p class="text-sm font-medium text-gray-400">
+                        LEVEL <span id="level-display" class="text-xl text-white font-mono">1</span>
+                    </p>
+                    <p class="text-sm font-medium text-gray-400">
+                        ENERGI: <span id="moves-display" class="text-xl text-yellow-400 font-mono">--</span>
+                    </p>
+                </div>
+                <p id="theme-name" class="text-xs text-gray-500 uppercase tracking-widest mt-1 transition-colors duration-500">Tema: Tutorial</p>
+            </div>
+            
+            <div class="flex flex-col gap-2 items-end">
+                <button id="exit-btn" class="interactive bg-red-800/80 hover:bg-red-700 text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-lg font-bold transition backdrop-blur-sm border border-red-500/30">✕</button>
+                <div class="flex gap-2 mt-2">
+                    <button id="reset-btn" class="interactive bg-blue-600/80 hover:bg-blue-600 text-white px-3 py-1 rounded-lg shadow-lg text-[10px] font-bold transition backdrop-blur-sm border border-blue-400/30">ULANG (R)</button>
+                    <button id="cam-reset-btn" class="interactive bg-gray-700/50 hover:bg-gray-600 text-white px-3 py-1 rounded-lg shadow text-[10px] transition border border-gray-600/30 backdrop-blur-sm">CAM</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="confirm-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm interactive">
+            <div class="glass-panel p-6 rounded-2xl max-w-xs w-full text-center border-red-500/30 border">
+                <h3 class="text-xl font-bold text-white mb-2">Keluar Permainan?</h3>
+                <p class="text-gray-400 text-sm mb-6">Progres level ini akan hilang.</p>
+                <div class="flex gap-3 justify-center">
+                    <button id="confirm-no" class="flex-1 bg-gray-700 hover:bg-gray-600 py-2 rounded-xl text-white font-bold text-sm">TIDAK</button>
+                    <button id="confirm-yes" class="flex-1 bg-red-600 hover:bg-red-500 py-2 rounded-xl text-white font-bold text-sm">YA, KELUAR</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="highscore-modal" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-black/90 backdrop-blur-md interactive">
+            <div class="glass-panel p-6 rounded-3xl max-w-sm w-full text-center relative">
+                <button id="close-hs" class="absolute top-4 right-4 text-gray-400 hover:text-white">✕</button>
+                <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-4">TOP 10 SKOR</h2>
+                <div class="bg-gray-800/50 rounded-xl p-2 mb-4 h-64 overflow-y-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-400 uppercase border-b border-gray-700">
+                            <tr>
+                                <th class="px-3 py-2">#</th>
+                                <th class="px-3 py-2">Nama</th>
+                                <th class="px-3 py-2 text-right">Level</th>
+                            </tr>
+                        </thead>
+                        <tbody id="highscore-list" class="text-gray-200"></tbody>
+                    </table>
+                </div>
+                <button id="hs-back-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl">KEMBALI KE MENU</button>
+            </div>
+        </div>
+
+        <div id="overlay" class="absolute inset-0 flex items-center justify-center interactive bg-black/80 z-20 backdrop-blur-sm">
+            <div class="glass-panel p-8 rounded-3xl max-w-sm w-full text-center text-white transform transition-all duration-300">
+                <h2 id="overlay-title" class="text-4xl font-black mb-2 text-white">KUBUS LOGIKA</h2>
+                <div class="h-1 w-16 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto mb-4 rounded-full"></div>
+                <p id="overlay-desc" class="mb-6 text-gray-300 text-sm leading-relaxed font-light">Nyalakan semua lantai. Hati-hati, energi terbatas!</p>
+                <div class="space-y-3">
+                    <button id="start-btn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all ring-1 ring-white/20">MULAI MAIN</button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="show-hs-btn" class="bg-gray-700/50 hover:bg-gray-700 text-yellow-400 font-bold py-3 rounded-xl border border-white/10 text-xs tracking-wider">🏆 TOP SKOR</button>
+                        <a href="https://brain-gym.pages.dev/" target="_blank" class="flex items-center justify-center bg-gray-700/50 hover:bg-gray-700 text-white font-bold py-3 rounded-xl border border-white/10 text-xs tracking-wider decoration-0">📂 MENU UTAMA</a>
                     </div>
                 </div>
-                
-                <div class="flex gap-2">
-                    <button id="reset-btn" class="interactive bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-3 py-2 rounded-lg border border-red-500/30 text-[10px] font-bold transition">
-                        ULANG (R)
-                    </button>
-                    <button onclick="askExit()" class="interactive bg-slate-700/50 hover:bg-slate-600 text-white w-10 h-10 rounded-lg border border-slate-600 flex items-center justify-center transition">
-                        ✕
-                    </button>
-                </div>
             </div>
-            
-            <div class="timer-container">
-                <div id="timer-bar" class="timer-fill" style="width: 100%;"></div>
-            </div>
-            <p id="theme-name" class="text-[10px] text-gray-500 uppercase tracking-widest mt-1 text-center">Tema: Tutorial</p>
         </div>
-
+        
         <div class="text-center pb-4 opacity-50 pointer-events-none">
-            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Swipe Layar untuk Bergerak</p>
-        </div>
-    </div>
-
-    <div id="overlay">
-        <div class="glass-panel p-8 rounded-3xl max-w-sm w-full mx-4 text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-orange-500"></div>
-            
-            <h2 class="text-4xl font-black mb-2 text-white mt-2">LOGIKA</h2>
-            <p class="text-gray-400 text-sm mb-6 font-light">Nyalakan semua lantai. Waktu terbatas!</p>
-            
-            <button onclick="startGame()" class="interactive w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg mb-3 transition transform active:scale-95">
-                MULAI MAIN
-            </button>
-            
-            <button onclick="showLeaderboard()" class="interactive w-full bg-slate-800 hover:bg-slate-700 text-yellow-400 font-bold py-3 rounded-xl border border-slate-700 mb-3 transition">
-                🏆 TOP SKOR
-            </button>
-
-            <a href="../index.html" class="interactive block w-full py-3 text-xs text-gray-500 hover:text-white transition">
-                ⬅ KEMBALI KE MENU UTAMA (REPO)
-            </a>
-        </div>
-    </div>
-
-    <div id="leaderboard-modal" class="hidden">
-        <div class="glass-panel p-6 rounded-2xl max-w-sm w-full h-3/4 flex flex-col relative mx-4">
-            <button onclick="hideLeaderboard()" class="interactive absolute top-4 right-4 text-gray-400 hover:text-white">✕</button>
-            <h2 class="text-2xl font-bold text-yellow-400 mb-4 text-center border-b border-white/10 pb-4">TOP 10 RECORDS</h2>
-            
-            <div id="lb-list" class="flex-1 overflow-y-auto scroller space-y-2 pr-1">
-                </div>
-        </div>
-    </div>
-
-    <div id="confirm-modal" class="hidden">
-        <div class="glass-panel p-6 rounded-2xl max-w-xs w-full text-center mx-4">
-            <h3 class="text-xl font-bold text-white mb-2">Keluar Permainan?</h3>
-            <p class="text-gray-400 text-xs mb-6">Progress level ini akan hilang.</p>
-            <div class="flex gap-3">
-                <button onclick="closeConfirm()" class="interactive flex-1 bg-slate-700 text-white py-2 rounded-lg text-sm">Batal</button>
-                <button onclick="confirmExit()" class="interactive flex-1 bg-red-600 text-white py-2 rounded-lg font-bold text-sm shadow-lg">YA, KELUAR</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="game-over-modal" class="hidden">
-        <div class="glass-panel p-8 rounded-3xl max-w-sm w-full mx-4 text-center border-t-4 border-transparent" id="go-border">
-            <h2 id="go-title" class="text-3xl font-black text-white mb-2">GAME OVER</h2>
-            <p id="go-desc" class="text-gray-300 text-sm mb-6">Waktu Habis!</p>
-            
-            <button onclick="restartGame()" class="interactive w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg mb-3">
-                MAIN LAGI
-            </button>
-            <button onclick="confirmExit()" class="interactive w-full bg-slate-700 text-white font-semibold py-3 rounded-xl">
-                MENU AWAL
-            </button>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Geser area kosong untuk putar kamera</p>
         </div>
     </div>
 
     <div id="game-container"></div>
 
     <script>
-        // --- LOGIKA BACK BUTTON HP ---
-        // Mencegah back button keluar browser, ganti dengan popup konfirmasi
-        history.pushState(null, null, location.href);
-        window.onpopstate = function () {
-            history.pushState(null, null, location.href);
-            askExit();
-        };
-
-        // --- GLOBAL VARIABLES ---
+        // --- KONFIGURASI DAN STATE ---
         const TILE_SIZE = 1.2;
         const TOTAL_LEVELS = 50;
-        const LB_KEY = 'kubus_logika_topscores';
+        
+        let highScores = JSON.parse(localStorage.getItem('kubus_highscores')) || [];
 
-        let scene, camera, renderer, playerMesh, tileMeshes = [];
+        const THEMES = [
+            { name: "Neon City", bg: 0x0f172a, tile: 0x334155, on: 0xfacc15, player: 0x38bdf8, pEmit: 0x0ea5e9, fog: 0x0f172a }, 
+            { name: "Mars Base", bg: 0x2a0a0a, tile: 0x552222, on: 0xff5500, player: 0xffaa00, pEmit: 0xff4400, fog: 0x2a0a0a },
+            { name: "Cyber Jungle", bg: 0x052e16, tile: 0x14532d, on: 0x4ade80, player: 0x22d3ee, pEmit: 0x06b6d4, fog: 0x052e16 },
+            { name: "Deep Ocean", bg: 0x0c0a2a, tile: 0x1e1b4b, on: 0x818cf8, player: 0xf472b6, pEmit: 0xe879f9, fog: 0x0c0a2a },
+            { name: "Void Core", bg: 0x000000, tile: 0x262626, on: 0xffffff, player: 0xff0055, pEmit: 0xff0055, fog: 0x000000 }
+        ];
+
+        let currentTheme = THEMES[0];
+        let levels = [];
+
+        // --- GENERATOR LEVEL ---
+        const staticLevels = [
+            { map: [[1,1,1],[1,1,1],[1,1,1]], start: {x:1, z:1}, minPath: 8 },
+            { map: [[1,1,1],[0,1,0],[0,1,0],[0,1,0]], start: {x:1, z:3}, minPath: 6 },
+            { map: [[1,0,1,1,1],[1,1,1,0,1],[0,0,1,1,1]], start: {x:0, z:0}, minPath: 10 },
+            { map: [[1,1,1,1],[1,0,0,1],[1,0,0,1],[1,1,1,1]], start: {x:0, z:0}, minPath: 12 },
+            { map: [[1,1,1,0,1],[1,0,1,0,1],[1,0,1,1,1],[1,0,0,0,0],[1,1,1,1,1]], start: {x:0, z:0}, minPath: 16 }
+        ];
+        levels = [...staticLevels];
+
+        function initLevels() {
+            for (let i = 5; i < TOTAL_LEVELS; i++) {
+                levels.push(generateProceduralLevel(i));
+            }
+        }
+
+        function generateProceduralLevel(levelIndex) {
+            const size = Math.min(9, 4 + Math.floor(levelIndex / 8)); 
+            const minPath = 8 + levelIndex + Math.floor(levelIndex * 0.4); 
+            let map, startPos, bestPathLen = 0;
+            let success = false;
+            let attempts = 0;
+
+            while (!success && attempts < 200) {
+                attempts++;
+                map = Array(size).fill().map(() => Array(size).fill(0));
+                let curr = { x: Math.floor(Math.random() * (size - 2)) + 1, y: Math.floor(Math.random() * (size - 2)) + 1 };
+                startPos = { ...curr };
+                let path = [curr];
+                map[curr.y][curr.x] = 1;
+
+                let stuck = false;
+                while (path.length < minPath && !stuck) {
+                    let neighbors = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}]
+                        .map(d => ({x: curr.x + d.x, y: curr.y + d.y}))
+                        .filter(n => n.x >= 0 && n.x < size && n.y >= 0 && n.y < size && map[n.y][n.x] === 0);
+                    if (neighbors.length > 0) {
+                        let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                        map[next.y][next.x] = 1;
+                        path.push(next);
+                        curr = next;
+                    } else stuck = true;
+                }
+                if (path.length >= Math.max(6, minPath * 0.7)) {
+                    success = true;
+                    bestPathLen = path.length;
+                }
+            }
+            if (!success) return { map: [[1,1,1],[1,0,1],[1,1,1]], start: {x:0, z:0}, minPath: 8 };
+            return { map: map, start: {x: startPos.x, z: startPos.y}, minPath: bestPathLen };
+        }
+
+        initLevels();
+
+        // --- GLOBAL VARIABLES ---
+        let scene, camera, renderer;
+        let playerMesh, tileMeshes = [];
         let currentLevelIndex = 0;
         let currentMap = [];
         let playerPos = { x: 0, z: 0 };
         let isMoving = false;
         let isGameActive = false;
-        
-        // Timer Vars
-        let timerInterval = null;
-        let timeLeft = 0;
-        let maxTime = 0;
+        let movesLeft = 0;
+        let cameraAngle = 0;
+        let cameraZoom = 14;
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
 
-        // Input Vars
-        let startMouse = { x: 0, y: 0 };
-
-        // Theme Data
-        const THEMES = [
-            { name: "Neon City", bg: 0x0f172a, tile: 0x334155, on: 0xfacc15, player: 0x38bdf8, pEmit: 0x0ea5e9 },
-            { name: "Mars Base", bg: 0x2a0a0a, tile: 0x552222, on: 0xff5500, player: 0xffaa00, pEmit: 0xff4400 },
-            { name: "Cyber Jungle", bg: 0x052e16, tile: 0x14532d, on: 0x4ade80, player: 0x22d3ee, pEmit: 0x06b6d4 },
-            { name: "Deep Ocean", bg: 0x0c0a2a, tile: 0x1e1b4b, on: 0x818cf8, player: 0xf472b6, pEmit: 0xe879f9 },
-            { name: "Void Core", bg: 0x000000, tile: 0x262626, on: 0xffffff, player: 0xff0055, pEmit: 0xff0055 }
-        ];
-
-        // --- LEVEL GENERATOR ---
-        const staticLevels = [
-            { map: [[1,1,1],[1,1,1],[1,1,1]], start: {x:1, z:1} },
-            { map: [[1,1,1],[0,1,0],[0,1,0],[0,1,0]], start: {x:1, z:3} },
-            { map: [[1,0,1,1,1],[1,1,1,0,1],[0,0,1,1,1]], start: {x:0, z:0} },
-            { map: [[1,1,1,1],[1,0,0,1],[1,0,0,1],[1,1,1,1]], start: {x:0, z:0} },
-            { map: [[1,1,1,0,1],[1,0,1,0,1],[1,0,1,1,1],[1,0,0,0,0],[1,1,1,1,1]], start: {x:0, z:0} }
-        ];
-        let levels = [...staticLevels];
-
-        // Generate levels 6-50 automatically
-        for (let i = 5; i < TOTAL_LEVELS; i++) {
-            const size = Math.min(8, 4 + Math.floor(i / 10)); 
-            const minPath = 8 + i; 
-            let map, startPos, success = false, attempts = 0;
-            while(!success && attempts < 50) {
-                attempts++;
-                map = Array(size).fill().map(() => Array(size).fill(0));
-                let curr = { x: Math.floor(Math.random()*(size-2))+1, y: Math.floor(Math.random()*(size-2))+1 };
-                startPos = { ...curr };
-                map[curr.y][curr.x] = 1;
-                let pathLen = 1;
-                for(let steps=0; steps<minPath*1.5; steps++) {
-                    let dirs = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
-                    let d = dirs[Math.floor(Math.random()*4)];
-                    let nx = curr.x+d.x, ny = curr.y+d.y;
-                    if(nx>=0 && nx<size && ny>=0 && ny<size) {
-                        if(map[ny][nx]===0) pathLen++;
-                        map[ny][nx] = 1;
-                        curr = {x:nx, y:ny};
-                    }
-                }
-                if(pathLen >= minPath) success = true;
-            }
-            levels.push({ map: map, start: {x: startPos.x, z: startPos.y} });
-        }
-
-        // --- LEADERBOARD SYSTEM ---
-        function saveScore(lvl) {
-            let data = JSON.parse(localStorage.getItem(LB_KEY) || '[]');
-            let date = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'short'});
-            // Cek apakah user ini sudah ada record? (Disini kita simpan history saja)
-            data.push({ l: lvl, d: date });
-            // Sort by level desc
-            data.sort((a, b) => b.l - a.l);
-            // Keep top 10
-            data = data.slice(0, 10);
-            localStorage.setItem(LB_KEY, JSON.stringify(data));
-        }
-
-        function showLeaderboard() {
-            const list = document.getElementById('lb-list');
-            const data = JSON.parse(localStorage.getItem(LB_KEY) || '[]');
-            
-            if(data.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-500 mt-10 text-xs">Belum ada rekor tersimpan.</div>';
-            } else {
-                let html = '';
-                data.forEach((item, idx) => {
-                    let color = idx === 0 ? 'text-yellow-400' : (idx===1?'text-gray-300':(idx===2?'text-orange-400':'text-white'));
-                    let bg = idx % 2 === 0 ? 'bg-white/5' : 'bg-transparent';
-                    html += `
-                        <div class="flex justify-between items-center p-3 rounded-lg ${bg}">
-                            <div class="flex items-center gap-3">
-                                <span class="font-mono font-bold w-6 ${color}">#${idx+1}</span>
-                                <span class="text-xs text-gray-400">${item.d}</span>
-                            </div>
-                            <span class="font-bold text-emerald-400 text-sm">Lv. ${item.l}</span>
-                        </div>`;
-                });
-                list.innerHTML = html;
-            }
-            document.getElementById('leaderboard-modal').classList.remove('hidden');
-        }
-
-        function hideLeaderboard() {
-            document.getElementById('leaderboard-modal').classList.add('hidden');
-        }
-
-        // --- UI & NAVIGATION ---
-        function startGame() {
-            document.getElementById('overlay').classList.add('hidden');
-            document.getElementById('ui-layer').classList.remove('hidden');
-            currentLevelIndex = 0;
-            loadLevel(0);
-            isGameActive = true;
-        }
-
-        function askExit() {
-            if(!isGameActive) return; // Jangan muncul di menu utama
-            document.getElementById('confirm-modal').classList.remove('hidden');
-        }
-
-        function closeConfirm() {
-            document.getElementById('confirm-modal').classList.add('hidden');
-        }
-
-        function confirmExit() {
-            // Reset state
-            isGameActive = false;
-            clearInterval(timerInterval);
-            
-            // Hide everything
-            document.getElementById('confirm-modal').classList.add('hidden');
-            document.getElementById('game-over-modal').classList.add('hidden');
-            document.getElementById('ui-layer').classList.add('hidden');
-            
-            // Show Start Overlay
-            document.getElementById('overlay').classList.remove('hidden');
-        }
-
-        function restartGame() {
-            document.getElementById('game-over-modal').classList.add('hidden');
-            currentLevelIndex = 0;
-            loadLevel(0);
-            isGameActive = true;
-        }
-
-        // --- THREE.JS ENGINE ---
         function init() {
             const container = document.getElementById('game-container');
             scene = new THREE.Scene();
-            
-            // KAMERA STATIS (Fixed Isometric)
-            const aspect = window.innerWidth / window.innerHeight;
-            camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
-            camera.position.set(10, 10, 10); // Standard Isometric View
-            camera.lookAt(0, 0, 0);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            updateCameraPosition();
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             container.appendChild(renderer.domElement);
 
             const ambient = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambient);
             const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-            sun.position.set(5, 15, 5);
+            sun.position.set(10, 20, 10);
             sun.castShadow = true;
+            sun.shadow.mapSize.width = 1024;
+            sun.shadow.mapSize.height = 1024;
             scene.add(sun);
-
+            
             window.addEventListener('resize', onWindowResize, false);
             setupInputHandlers();
             animate();
         }
 
-        function loadLevel(idx) {
-            if(idx >= TOTAL_LEVELS) {
-                gameOver(true); 
-                return; 
+        function loadLevel(levelIndex) {
+            if (levelIndex >= levels.length) {
+                showWinGame();
+                return;
             }
 
-            // Cleanup
-            if(playerMesh) scene.remove(playerMesh);
+            if (playerMesh) scene.remove(playerMesh);
             tileMeshes.forEach(m => scene.remove(m));
             tileMeshes = [];
 
-            const levelData = levels[idx];
+            const levelData = levels[levelIndex];
             currentMap = JSON.parse(JSON.stringify(levelData.map));
             playerPos = { ...levelData.start };
             
-            // Theme
-            const theme = THEMES[Math.floor(idx / 10) % THEMES.length];
-            scene.background = new THREE.Color(theme.bg);
-            document.getElementById('theme-name').innerText = "TEMA: " + theme.name;
-            document.getElementById('theme-name').style.color = '#' + theme.on.toString(16);
-
-            // Create Grid
-            const h = currentMap.length; 
-            const w = currentMap[0].length;
-            const offX = (w*TILE_SIZE)/2 - (TILE_SIZE/2);
-            const offZ = (h*TILE_SIZE)/2 - (TILE_SIZE/2);
-            const geo = new THREE.BoxGeometry(TILE_SIZE*0.9, 0.2, TILE_SIZE*0.9);
+            const tolerance = Math.ceil(levelData.minPath * 0.4); 
+            movesLeft = levelData.minPath + tolerance + 4;
+            updateMovesUI();
             
-            let tileCount = 0;
+            const themeIndex = Math.floor(levelIndex / 10);
+            currentTheme = THEMES[Math.min(themeIndex, THEMES.length - 1)];
+            scene.background = new THREE.Color(currentTheme.bg);
+            scene.fog = new THREE.Fog(currentTheme.fog, 10, 40);
+            
+            const themeText = document.getElementById('theme-name');
+            themeText.innerText = `TEMA: ${currentTheme.name}`;
+            themeText.style.color = '#' + currentTheme.on.toString(16);
 
-            for(let z=0; z<h; z++) {
-                for(let x=0; x<w; x++) {
-                    if(currentMap[z][x] !== 0) {
-                        tileCount++;
-                        const mat = new THREE.MeshStandardMaterial({ color: theme.tile, roughness:0.2 });
+            const h = currentMap.length;
+            const w = currentMap[0].length;
+            const offX = (w * TILE_SIZE) / 2 - (TILE_SIZE / 2);
+            const offZ = (h * TILE_SIZE) / 2 - (TILE_SIZE / 2);
+            const geo = new THREE.BoxGeometry(TILE_SIZE * 0.94, 0.3, TILE_SIZE * 0.94);
+            
+            for (let z = 0; z < h; z++) {
+                for (let x = 0; x < w; x++) {
+                    if (currentMap[z][x] !== 0) {
+                        const mat = new THREE.MeshStandardMaterial({ color: currentTheme.tile, roughness: 0.3 });
                         const tile = new THREE.Mesh(geo, mat);
-                        tile.position.set((x*TILE_SIZE)-offX, -0.1, (z*TILE_SIZE)-offZ);
-                        tile.userData = { gridX: x, gridZ: z, state: false, colorOn: theme.on, colorOff: theme.tile };
+                        tile.position.set((x * TILE_SIZE) - offX, -0.15, (z * TILE_SIZE) - offZ);
                         tile.receiveShadow = true;
+                        tile.castShadow = true;
+                        tile.userData = { gridX: x, gridZ: z, state: false };
                         scene.add(tile);
                         tileMeshes.push(tile);
                     }
                 }
             }
 
-            // Player
-            const pGeo = new THREE.SphereGeometry(TILE_SIZE*0.35, 32, 32);
-            const pMat = new THREE.MeshStandardMaterial({ color: theme.player, emissive: theme.player, emissiveIntensity: 0.5 });
+            const pGeo = new THREE.SphereGeometry(TILE_SIZE * 0.4, 32, 32);
+            const pMat = new THREE.MeshStandardMaterial({ color: currentTheme.player, emissive: currentTheme.pEmit, emissiveIntensity: 0.7 });
             playerMesh = new THREE.Mesh(pGeo, pMat);
             playerMesh.castShadow = true;
+            
             const startTile = getTileMesh(playerPos.x, playerPos.z);
-            if(startTile) {
+            if (startTile) {
                 playerMesh.position.copy(startTile.position);
-                playerMesh.position.y = TILE_SIZE*0.5;
+                playerMesh.position.y = TILE_SIZE * 0.5;
                 toggleTile(startTile, true);
             }
             scene.add(playerMesh);
 
-            // Camera Zoom Adjustment
+            document.getElementById('level-display').innerText = levelIndex + 1;
+            
             const maxDim = Math.max(w, h);
-            const zoom = 9 + (maxDim * 1.5);
-            camera.position.set(zoom, zoom, zoom);
-            camera.lookAt(0,0,0);
-
-            // Update UI
-            document.getElementById('hud-level').innerText = (idx + 1);
-
-            // TIMER LOGIC: Difficulty increases with level
-            // Base time per tile reduces as level goes up
-            let secondsPerTile = Math.max(0.4, 1.2 - (idx * 0.015)); 
-            let totalTime = Math.floor(tileCount * secondsPerTile) + 4; // +4s buffer
-            
-            startTimer(totalTime);
+            cameraZoom = 10 + (maxDim * 0.8);
+            updateCameraPosition();
+            history.pushState({game: true}, "In Game", "");
         }
 
-        function startTimer(seconds) {
-            clearInterval(timerInterval);
-            maxTime = seconds;
-            timeLeft = seconds;
-            
-            updateTimerUI();
-            
-            timerInterval = setInterval(() => {
-                if(!isGameActive) return;
-                timeLeft--;
-                updateTimerUI();
-                
-                if(timeLeft <= 0) {
-                    gameOver(false);
-                }
-            }, 1000);
-        }
-
-        function updateTimerUI() {
-            const bar = document.getElementById('timer-bar');
-            let pct = (timeLeft / maxTime) * 100;
-            bar.style.width = pct + "%";
-            
-            if(pct < 30) bar.classList.add('timer-critical');
-            else bar.classList.remove('timer-critical');
-        }
-
-        function gameOver(win) {
-            isGameActive = false;
-            clearInterval(timerInterval);
-            
-            const modal = document.getElementById('game-over-modal');
-            const title = document.getElementById('go-title');
-            const desc = document.getElementById('go-desc');
-            const border = document.getElementById('go-border');
-            
-            modal.classList.remove('hidden');
-
-            // Save Score (Max Level reached)
-            // If win=false, score is current level index (already passed prev).
-            // If win=true (finished all), score is 50.
-            let scoreToSave = win ? 50 : (currentLevelIndex + 1);
-            saveScore(scoreToSave);
-
-            if(win) {
-                border.style.borderColor = "#facc15"; // Yellow
-                title.innerText = "TAMAT!";
-                title.className = "text-3xl font-black text-yellow-400 mb-2";
-                desc.innerText = "Selamat! Kamu Master Logika.";
+        function updateMovesUI() {
+            const el = document.getElementById('moves-display');
+            el.innerText = movesLeft;
+            if (movesLeft <= 5) {
+                el.classList.remove('text-yellow-400');
+                el.classList.add('text-red-500', 'animate-pulse');
             } else {
-                border.style.borderColor = "#ef4444"; // Red
-                title.innerText = "WAKTU HABIS";
-                title.className = "text-3xl font-black text-red-500 mb-2";
-                desc.innerText = "Level " + (currentLevelIndex + 1) + " Gagal. Coba lagi!";
+                el.classList.remove('text-red-500', 'animate-pulse');
+                el.classList.add('text-yellow-400');
             }
         }
 
-        function getTileMesh(gx, gz) { return tileMeshes.find(t => t.userData.gridX === gx && t.userData.gridZ === gz); }
-        
-        function toggleTile(tile, forceOn=false) {
+        function toggleTile(tile, skipAnim = false) {
             if (!tile) return;
             tile.userData.state = !tile.userData.state;
-            if(forceOn) tile.userData.state = true;
-            
             const isOn = tile.userData.state;
-            tile.material.color.setHex(isOn ? tile.userData.colorOn : tile.userData.colorOff);
-            tile.material.emissive.setHex(isOn ? tile.userData.colorOn : 0x000000);
+            tile.material.color.setHex(isOn ? currentTheme.on : currentTheme.tile);
+            tile.material.emissive.setHex(isOn ? currentTheme.on : 0x000000);
             tile.material.emissiveIntensity = isOn ? 0.6 : 0;
-            
-            if(isOn) {
-                let f=0;
-                const anim = () => { if(f<5) { tile.position.y -= 0.05; f++; requestAnimationFrame(anim); } else tile.position.y = -0.1; };
+            if (!skipAnim) {
+                let f = 0; const baseY = -0.15;
+                const anim = () => {
+                    if (f < 8) {
+                        tile.position.y = baseY - 0.2 + Math.sin(f*0.5)*0.2;
+                        f++; requestAnimationFrame(anim);
+                    } else tile.position.y = baseY;
+                };
                 anim();
             }
         }
 
+        // --- GAMEPLAY LOGIC ---
+
         function checkWin() {
             const all = tileMeshes.length;
             const active = tileMeshes.filter(t => t.userData.state).length;
-            if(active === all) {
-                clearInterval(timerInterval);
+            
+            if (active === all) {
+                isGameActive = false;
                 setTimeout(() => {
-                    currentLevelIndex++;
-                    loadLevel(currentLevelIndex);
+                    const nextIdx = currentLevelIndex + 1;
+                    if (nextIdx < TOTAL_LEVELS) {
+                        // Tidak ada cek highscore di sini (PERBAIKAN)
+                        showOverlay(
+                            "LEVEL SELESAI!", 
+                            `Sisa Energi: ${movesLeft}. Siap ke Level ${nextIdx + 1}?`, 
+                            "LANJUT LEVEL", 
+                            () => {
+                                currentLevelIndex = nextIdx;
+                                loadLevel(currentLevelIndex);
+                                hideOverlay();
+                                isGameActive = true;
+                            }
+                        );
+                    } else {
+                        showWinGame(); // Highscore hanya cek saat tamat
+                    }
                 }, 500);
             }
         }
 
-        function move(dx, dz) {
-            if(isMoving || !isGameActive) return;
+        function gameOver() {
+            isGameActive = false;
+            // Highscore cek saat Game Over
+            saveAndCheckHighScore(currentLevelIndex + 1);
             
-            const nx = playerPos.x + dx;
-            const nz = playerPos.z + dz;
-            const targetTile = getTileMesh(nx, nz);
-            
-            if(!targetTile) return; // Hit wall
-            
-            // Aturan: Jangan injak lantai emas 2 kali
-            if(targetTile.userData.state === true) {
-                gameOver(false); // Kalah karena injak 2x
-                return;
+            setTimeout(() => {
+                showOverlay(
+                    "ENERGI HABIS", 
+                    "Anda kehabisan langkah.", 
+                    "ULANGI LEVEL", 
+                    () => {
+                        loadLevel(currentLevelIndex);
+                        hideOverlay();
+                        isGameActive = true;
+                    }
+                );
+            }, 500);
+        }
+        
+        function showWinGame() {
+            saveAndCheckHighScore(TOTAL_LEVELS + 1);
+            showOverlay("TAMAT!", "Luar biasa! Anda telah menyelesaikan semua 50 Level.", "KEMBALI KE MENU", () => returnToMainMenu());
+        }
+
+        function move(dirStr) {
+            if (isMoving || !isGameActive) return;
+            if (movesLeft <= 0) return;
+
+            const dir = getRelativeDir(dirStr);
+            const nx = playerPos.x + dir.x;
+            const nz = playerPos.z + dir.z;
+
+            if (nz < 0 || nz >= currentMap.length || nx < 0 || nx >= currentMap[0].length || currentMap[nz][nx] === 0) {
+                shakePlayer(); return;
             }
 
             isMoving = true;
-            playerPos.x = nx; playerPos.z = nz;
+            movesLeft--;
+            updateMovesUI();
+
+            playerPos.x = nx;
+            playerPos.z = nz;
             
+            const targetTile = getTileMesh(nx, nz);
             const pStart = playerMesh.position.clone();
-            const pEnd = targetTile.position.clone(); pEnd.y = TILE_SIZE*0.5;
-            
-            let t=0;
+            const pEnd = targetTile.position.clone();
+            pEnd.y = TILE_SIZE * 0.5;
+
+            let t = 0;
             const anim = () => {
-                t += 0.15; if(t>1) t=1;
+                t += 0.15;
+                if (t > 1) t = 1;
                 playerMesh.position.lerpVectors(pStart, pEnd, t);
-                playerMesh.position.y = (TILE_SIZE*0.5) + Math.sin(t*Math.PI)*0.8;
-                
-                if(t<1) requestAnimationFrame(anim);
+                playerMesh.position.y = (TILE_SIZE * 0.5) + Math.sin(t * Math.PI) * 0.6;
+                if (t < 1) requestAnimationFrame(anim);
                 else {
-                    isMoving=false;
-                    playerMesh.position.y = TILE_SIZE*0.5;
+                    isMoving = false;
+                    playerMesh.position.y = TILE_SIZE * 0.5;
                     toggleTile(targetTile);
-                    checkWin();
+                    if (movesLeft <= 0) {
+                        const active = tileMeshes.filter(tl => tl.userData.state).length;
+                        if (active === tileMeshes.length) checkWin();
+                        else gameOver();
+                    } else checkWin();
                 }
             };
             anim();
         }
 
-        function setupInputHandlers() {
-            const c = document.getElementById('game-container');
-            
-            // Touch Swipe
-            c.addEventListener('touchstart', e => { startMouse.x = e.touches[0].clientX; startMouse.y = e.touches[0].clientY; }, {passive:false});
-            c.addEventListener('touchend', e => {
-                const dx = e.changedTouches[0].clientX - startMouse.x;
-                const dy = e.changedTouches[0].clientY - startMouse.y;
-                
-                // Camera is fixed isometric:
-                // Swipe Up (Screen) -> Z- (Move Up/Left in grid relative to screen look)
-                // Simplified: Logic swipe mengikuti visual di layar
-                if(Math.abs(dx) > Math.abs(dy)) {
-                    if(Math.abs(dx) > 30) move(dx > 0 ? 1 : -1, 0); 
-                } else {
-                    if(Math.abs(dy) > 30) move(0, dy > 0 ? 1 : -1);
-                }
-            }, {passive:false});
-
-            // Keyboard
-            document.addEventListener('keydown', e => {
-                if(!isGameActive) return;
-                if(e.key === 'r') loadLevel(currentLevelIndex);
-                if(e.key === 'ArrowUp' || e.key === 'w') move(0, -1);
-                if(e.key === 'ArrowDown' || e.key === 's') move(0, 1);
-                if(e.key === 'ArrowLeft' || e.key === 'a') move(-1, 0);
-                if(e.key === 'ArrowRight' || e.key === 'd') move(1, 0);
-            });
-
-            // Reset Button
-            document.getElementById('reset-btn').addEventListener('click', () => {
-                if(isGameActive) loadLevel(currentLevelIndex);
-            });
+        function getTileMesh(gx, gz) { return tileMeshes.find(t => t.userData.gridX === gx && t.userData.gridZ === gz); }
+        function shakePlayer() {
+            const start = playerMesh.position.clone();
+            let i=0;
+            const shake = () => { if(i<5){ playerMesh.position.x = start.x + (Math.random()-0.5)*0.15; playerMesh.position.z = start.z + (Math.random()-0.5)*0.15; i++; requestAnimationFrame(shake); } else playerMesh.position.copy(start); };
+            shake();
         }
 
+        function getRelativeDir(input) {
+            let theta = cameraAngle % (Math.PI * 2);
+            if (theta < 0) theta += Math.PI * 2;
+            const q = Math.round(theta / (Math.PI / 2)) % 4;
+            let fwd = {x: 0, z: -1}; let rgt = {x: 1, z: 0};
+            if (q === 1) { fwd = {x: -1, z: 0}; rgt = {x: 0, z: -1}; }
+            else if (q === 2) { fwd = {x: 0, z: 1}; rgt = {x: -1, z: 0}; }
+            else if (q === 3) { fwd = {x: 1, z: 0}; rgt = {x: 0, z: 1}; }
+            if (input === 'up') return fwd;
+            if (input === 'down') return {x: -fwd.x, z: -fwd.z};
+            if (input === 'right') return rgt;
+            if (input === 'left') return {x: -rgt.x, z: -rgt.z};
+            return {x:0,z:0};
+        }
+
+        function updateCameraPosition() {
+            camera.position.set(Math.sin(cameraAngle) * cameraZoom, cameraZoom * 0.8, Math.cos(cameraAngle) * cameraZoom);
+            camera.lookAt(0, 0, 0);
+        }
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.aspect = window.innerWidth/window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
-
         function animate() {
             requestAnimationFrame(animate);
-            if(playerMesh && !isMoving) {
-                playerMesh.position.y = (TILE_SIZE*0.5) + Math.sin(Date.now()*0.003)*0.05;
-            }
+            if(!isMoving && playerMesh) playerMesh.position.y = (TILE_SIZE*0.5) + Math.sin(Date.now()*0.002)*0.05;
             renderer.render(scene, camera);
         }
 
+        // --- HIGHSCORE SYSTEM ---
+        function checkHighScorePrompt(levelReached) {
+            highScores.sort((a, b) => b.level - a.level);
+            let qualifies = highScores.length < 10 || levelReached > highScores[9].level;
+            
+            if (qualifies) {
+                setTimeout(() => {
+                    const name = prompt(`REKOR BARU! Anda mencapai Level ${levelReached}\nMasukkan Nama (Max 10):`, "Player");
+                    if (name) {
+                        const clean = name.substring(0,10).toUpperCase().replace(/[^A-Z0-9 ]/g, '');
+                        highScores.push({ name: clean || "ANON", level: levelReached });
+                        highScores.sort((a, b) => b.level - a.level);
+                        if (highScores.length > 10) highScores = highScores.slice(0, 10);
+                        localStorage.setItem('kubus_highscores', JSON.stringify(highScores));
+                    }
+                }, 100);
+            }
+        }
+        const saveAndCheckHighScore = checkHighScorePrompt;
+
+        function renderHighScores() {
+            const list = document.getElementById('highscore-list');
+            list.innerHTML = "";
+            const data = JSON.parse(localStorage.getItem('kubus_highscores')) || [];
+            data.sort((a, b) => b.level - a.level);
+
+            if (data.length === 0) {
+                list.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-500">Belum ada data</td></tr>`;
+                return;
+            }
+            data.forEach((s, i) => {
+                const row = document.createElement('tr');
+                row.className = "border-b border-gray-700 hover:bg-white/5";
+                row.innerHTML = `<td class="px-3 py-2 font-mono text-yellow-500">${i+1}</td><td class="px-3 py-2 font-bold">${s.name}</td><td class="px-3 py-2 text-right text-gray-400">${s.level}</td>`;
+                list.appendChild(row);
+            });
+        }
+
+        // --- UI HANDLERS ---
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlayDesc = document.getElementById('overlay-desc');
+        const startBtn = document.getElementById('start-btn');
+        const confirmModal = document.getElementById('confirm-modal');
+        const hsModal = document.getElementById('highscore-modal');
+
+        function showOverlay(title, desc, btnText, callbackAction) {
+            overlay.style.display = 'flex';
+            setTimeout(()=>overlay.classList.remove('opacity-0'), 10);
+            overlayTitle.innerText = title;
+            overlayDesc.innerText = desc;
+            startBtn.innerText = btnText;
+            startBtn.onclick = callbackAction;
+        }
+
+        function hideOverlay() { overlay.style.display='none'; }
+
+        function returnToMainMenu() {
+            confirmModal.classList.add('hidden');
+            hsModal.classList.add('hidden');
+            isGameActive = false;
+            showOverlay("KUBUS LOGIKA", "Mainkan lagi atau cek skor tertinggi.", "MULAI MAIN", () => {
+                currentLevelIndex = 0;
+                loadLevel(0);
+                hideOverlay();
+                isGameActive = true;
+            });
+        }
+
+        function showConfirmExit() {
+            if (!isGameActive) return;
+            isGameActive = false;
+            confirmModal.classList.remove('hidden');
+        }
+
+        function setupInputHandlers() {
+            document.addEventListener('keydown', e => {
+                if (e.key.toLowerCase() === 'r') { if(isGameActive) loadLevel(currentLevelIndex); return; }
+                if (e.key === 'Escape') { showConfirmExit(); return; }
+                if (!isGameActive) return;
+                switch(e.key) {
+                    case 'ArrowUp': case 'w': move('up'); break;
+                    case 'ArrowDown': case 's': move('down'); break;
+                    case 'ArrowLeft': case 'a': move('left'); break;
+                    case 'ArrowRight': case 'd': move('right'); break;
+                }
+            });
+            document.addEventListener('mousedown', e => { isDragging=true; prevMouse={x:e.clientX, y:e.clientY}; });
+            document.addEventListener('mouseup', () => isDragging=false);
+            document.addEventListener('mousemove', e => {
+                if (isDragging) {
+                    cameraAngle -= (e.clientX - prevMouse.x) * 0.005;
+                    updateCameraPosition();
+                    prevMouse = {x:e.clientX, y:e.clientY};
+                }
+            });
+            let tx=0, ty=0;
+            document.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:false});
+            document.addEventListener('touchend', e => {
+                const dx = e.changedTouches[0].clientX - tx;
+                const dy = e.changedTouches[0].clientY - ty;
+                if (Math.abs(dx)>30 || Math.abs(dy)>30) {
+                    if (Math.abs(dx) > Math.abs(dy)) move(dx>0?'right':'left');
+                    else move(dy>0?'down':'up');
+                }
+            }, {passive:false});
+
+            document.getElementById('reset-btn').onclick = () => { if(isGameActive) loadLevel(currentLevelIndex); };
+            document.getElementById('cam-reset-btn').onclick = () => { cameraAngle = 0; updateCameraPosition(); };
+            document.getElementById('exit-btn').onclick = showConfirmExit;
+            document.getElementById('confirm-yes').onclick = returnToMainMenu;
+            document.getElementById('confirm-no').onclick = () => { confirmModal.classList.add('hidden'); isGameActive = true; };
+            document.getElementById('show-hs-btn').onclick = () => { renderHighScores(); hsModal.classList.remove('hidden'); };
+            document.getElementById('close-hs').onclick = () => hsModal.classList.add('hidden');
+            document.getElementById('hs-back-btn').onclick = () => hsModal.classList.add('hidden');
+        }
+
+        window.onpopstate = function(event) {
+            if (overlay.style.display === 'none' && confirmModal.classList.contains('hidden')) {
+                history.pushState({game: true}, "In Game", ""); 
+                showConfirmExit();
+            }
+        };
+
         init();
+        startBtn.onclick = () => {
+            currentLevelIndex = 0;
+            loadLevel(currentLevelIndex);
+            hideOverlay();
+            isGameActive = true;
+        };
     </script>
 </body>
 </html>

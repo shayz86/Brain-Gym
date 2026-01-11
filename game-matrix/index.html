@@ -474,4 +474,93 @@
             const scores = getHighScores();
             
             if (scores.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-slate-500 text-sm mt-8">Jadilah Legenda Level 10
+                listEl.innerHTML = '<div class="text-center text-slate-500 text-sm mt-8">Jadilah Legenda Level 100!</div>';
+                return;
+            }
+
+            let html = '';
+            scores.forEach((s, i) => {
+                let rankColor = 'text-slate-400';
+                let medal = '';
+                if (i===0) { rankColor = 'text-yellow-400 font-bold'; medal='👑'; }
+                if (i===1) { rankColor = 'text-slate-300 font-bold'; }
+                if (i===2) { rankColor = 'text-orange-400 font-bold'; }
+
+                html += `
+                <div class="flex justify-between items-center bg-slate-700/30 p-2 rounded mb-1 text-sm border border-slate-700/50">
+                    <div class="flex items-center gap-3">
+                        <span class="w-5 text-center ${rankColor}">${i+1}</span>
+                        <div class="flex flex-col">
+                            <span class="font-semibold text-slate-200">${medal} ${s.name}</span>
+                            <span class="text-[10px] text-slate-500">Lv.${s.level}</span>
+                        </div>
+                    </div>
+                    <span class="font-mono text-emerald-400 font-bold">${s.score}</span>
+                </div>`;
+            });
+            listEl.innerHTML = html;
+        }
+
+        // --- GAME OVER ---
+
+        function gameOver(isWin) {
+            el('modal-overlay').classList.remove('hidden');
+            el('modal-score').innerText = state.score;
+            el('modal-level').innerText = state.level;
+            
+            const scores = getHighScores();
+            const minScore = scores.length < 10 ? 0 : scores[scores.length - 1].score;
+            state.isHighScore = state.score > minScore;
+
+            if (isWin) {
+                el('modal-title').innerText = "SELESAI!";
+                el('modal-title').className = "text-3xl font-bold mb-2 text-emerald-400";
+                el('modal-message').innerText = "Anda Mencapai Level 100!";
+                el('modal-border-top').className = "absolute top-0 left-0 w-full h-1 bg-emerald-500";
+            } else {
+                el('modal-title').innerText = "GAME OVER";
+                el('modal-title').className = "text-3xl font-bold mb-2 text-red-500";
+                el('modal-message').innerText = "Coba lagi untuk capai Lv 100!";
+                el('modal-border-top').className = "absolute top-0 left-0 w-full h-1 bg-red-500";
+            }
+
+            if (state.isHighScore && state.score > 0) {
+                playSound('highscore');
+                el('highscore-form').classList.remove('hidden');
+                el('action-btn').innerText = "Simpan Rekor";
+                el('action-btn').classList.remove('bg-white', 'text-slate-900');
+                el('action-btn').classList.add('bg-yellow-400', 'text-black');
+                setTimeout(() => el('player-name').focus(), 100);
+            } else {
+                el('highscore-form').classList.add('hidden');
+                el('action-btn').innerText = "Main Lagi";
+                el('action-btn').classList.add('bg-white', 'text-slate-900');
+                el('action-btn').classList.remove('bg-yellow-400', 'text-black');
+            }
+        }
+
+        function handleModalAction() {
+            if (state.isHighScore && state.score > 0) {
+                const nameInput = el('player-name');
+                if (nameInput.value.trim() === "") {
+                    nameInput.classList.add('ring-2', 'ring-red-500');
+                    return;
+                }
+                saveHighScore(nameInput.value);
+                state.isHighScore = false; 
+                
+                el('modal-overlay').classList.add('hidden');
+                el('game-ui').classList.add('hidden');
+                el('start-screen').classList.remove('hidden');
+                el('player-name').value = '';
+            } else {
+                el('modal-overlay').classList.add('hidden');
+                startGame();
+            }
+        }
+
+        renderLeaderboard();
+    </script>
+</body>
+</html>
+

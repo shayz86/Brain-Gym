@@ -8,46 +8,56 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* --- GAYA ASLI (RESTORED) --- */
+        /* SETUP TAMPILAN FIXED (ANTI-GESER) */
         body {
             font-family: 'Fredoka', sans-serif;
-            background-color: #0B1120; /* Deep Navy Background */
+            background-color: #0B1120; /* Warna Asli Navy Gelap */
             color: white;
-            touch-action: manipulation; /* Anti-zoom double tap */
-            user-select: none;
-            overflow: hidden;
+            overflow: hidden; /* Mencegah scroll */
             height: 100vh;
-            height: 100dvh;
+            height: 100dvh; /* Solusi layar HP modern */
+            touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Gradient Teks Judul (Sesuai Foto 1) */
+        .text-gradient {
+            background: linear-gradient(to right, #ec4899, #fbbf24); /* Pink ke Kuning */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Tombol Utama (Gradient Ungu-Biru Sesuai Foto 1) */
+        .btn-primary {
+            background: linear-gradient(to right, #3b82f6, #a855f7);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
         }
 
         /* Animasi Pop */
         .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
         
-        /* Hide Scrollbar */
         .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body id="main-body" class="w-full h-full relative overflow-hidden bg-[#0B1120]">
+<body id="main-body" class="w-full h-full relative bg-[#0B1120]">
 
-    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center bg-[#0B1120]">
+    <div id="start-screen" class="screen-section flex flex-col items-center justify-center w-full h-full absolute inset-0 z-50 bg-[#0B1120] p-6 text-center">
         
-        <div class="mb-10">
-            <h1 class="text-5xl md:text-6xl font-bold mb-2 leading-tight">
-                <span class="text-pink-500">KEKACAUAN</span><br>
-                <span class="text-yellow-400">WARNA</span>
+        <div class="mb-8">
+            <h1 class="text-5xl md:text-6xl font-bold leading-tight text-gradient drop-shadow-lg">
+                KEKACAUAN<br>WARNA
             </h1>
-            <p class="text-gray-400 text-sm tracking-widest mt-2 uppercase">Brain Gym Edition</p>
+            <p class="text-gray-400 text-sm tracking-[0.2em] mt-3 uppercase">Brain Gym Edition</p>
         </div>
         
         <div class="bg-[#1e293b] p-5 rounded-2xl w-full max-w-xs mb-8 border border-gray-700 shadow-xl text-left space-y-3">
             <div class="flex items-center gap-3">
-                <span class="text-green-400 text-xl">✓</span>
+                <span class="text-green-400 text-xl font-bold">✓</span>
                 <p class="text-gray-300 text-sm">"Pilih WARNA" = <span class="text-white font-bold">Lihat Tinta</span></p>
             </div>
             <div class="flex items-center gap-3">
-                <span class="text-pink-400 text-xl">✓</span>
+                <span class="text-pink-400 text-xl font-bold">✓</span>
                 <p class="text-gray-300 text-sm">"Pilih TEKS" = <span class="text-white font-bold">Baca Kata</span></p>
             </div>
             <div class="pt-3 border-t border-gray-600 mt-2">
@@ -57,36 +67,36 @@
             </div>
         </div>
 
-        <button id="btn-start" class="w-full max-w-xs py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-bold text-xl shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:scale-105 active:scale-95 transition-transform text-white border border-white/10">
+        <button id="btn-start" class="btn-primary w-full max-w-xs py-4 rounded-full font-bold text-xl text-white tracking-wide active:scale-95 transition-transform mb-6 border border-white/10">
             MULAI GAME
         </button>
 
-        <a href="../index.html" class="mt-6 flex items-center gap-2 text-gray-400 hover:text-white transition text-sm font-bold bg-white/5 px-4 py-2 rounded-full border border-white/5">
+        <a href="../index.html" class="flex items-center gap-2 px-6 py-3 bg-[#1e293b] rounded-full text-gray-300 text-sm font-bold border border-gray-700 hover:bg-gray-700 transition">
             🏠 Menu Utama
         </a>
 
-        <button id="btn-open-lb" class="mt-4 text-gray-500 hover:text-white text-xs underline px-4 py-2">
+        <button id="btn-open-lb" class="mt-4 text-gray-500 hover:text-white text-xs underline p-2">
             🏆 Lihat Top 10 Skor
         </button>
     </div>
 
-    <div id="game-ui" class="hidden absolute inset-0 z-40 w-full h-full flex-col p-6 pb-8 bg-[#0B1120]">
+    <div id="game-ui" class="screen-section hidden flex-col items-center justify-between w-full h-full absolute inset-0 z-40 bg-[#0B1120] p-6 pb-10">
         
-        <div class="flex justify-between items-center mb-6">
-            <div class="bg-[#1e293b] px-5 py-2 rounded-full border border-slate-700 shadow-lg flex items-center gap-2">
-                <span class="text-slate-400 text-xs font-bold uppercase">SKOR</span>
+        <div class="w-full max-w-md flex justify-between items-center mb-4">
+            <div class="bg-[#1e293b] px-4 py-2 rounded-full border border-gray-700 flex items-center gap-2">
+                <span class="text-gray-400 text-xs font-bold uppercase">SKOR</span>
                 <span id="score-display" class="font-bold text-xl text-white">0</span>
             </div>
-            <a href="../index.html" class="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/30 hover:bg-red-500 hover:text-white transition">✕</a>
+            <a href="../index.html" class="w-9 h-9 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition">✕</a>
         </div>
 
-        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-8">
+        <div class="w-full max-w-md h-2 bg-gray-800 rounded-full overflow-hidden mb-4">
             <div id="timer-bar" class="h-full bg-gradient-to-r from-green-400 to-yellow-400 w-full rounded-full"></div>
         </div>
 
-        <div class="flex-1 flex flex-col items-center justify-center -mt-10">
+        <div class="flex-1 flex flex-col items-center justify-center w-full max-w-md -mt-10">
             <div id="instruction-container" class="mb-8">
-                <span id="instruction-text" class="px-8 py-3 bg-[#0f172a] rounded-full text-lg font-bold border border-purple-500 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)] tracking-wide">...</span>
+                <span id="instruction-text" class="px-8 py-3 bg-[#0f172a] rounded-full text-lg font-bold border border-purple-500 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)] tracking-wide block text-center">...</span>
             </div>
             
             <div id="challenge-word-container" class="w-full text-center h-24 flex items-center justify-center">
@@ -94,65 +104,66 @@
             </div>
         </div>
 
-        <div id="buttons-container" class="grid grid-cols-2 gap-4 mt-auto"></div>
+        <div id="buttons-container" class="grid grid-cols-2 gap-4 w-full max-w-md mt-auto">
+            </div>
     </div>
 
-    <div id="game-over-screen" class="hidden absolute inset-0 z-[60] bg-black/95 flex-col items-center justify-center p-6 text-center">
+    <div id="game-over-screen" class="screen-section hidden flex-col items-center justify-center w-full h-full absolute inset-0 z-[60] bg-black/95 p-6 text-center">
         <h2 class="text-4xl font-bold text-red-500 mb-2">Waktu Habis!</h2>
         
-        <div class="bg-[#1e293b] rounded-2xl p-8 w-full max-w-xs mb-8 border border-slate-700 shadow-2xl mt-4">
-            <div class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-2">Skor Akhir</div>
+        <div class="bg-[#1e293b] rounded-2xl p-8 w-full max-w-xs mb-8 border border-gray-700 shadow-2xl mt-4">
+            <div class="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2">Skor Akhir</div>
             <div id="final-score" class="text-7xl font-bold text-white">0</div>
         </div>
 
         <div id="new-record-section" class="hidden w-full max-w-xs animate-bounce-in mb-4">
             <p class="text-yellow-400 font-bold mb-2">🎉 REKOR BARU! 🎉</p>
             <input type="text" id="player-name-input" maxlength="10" placeholder="NAMA KAMU" 
-                class="w-full px-4 py-3 bg-slate-900 border border-yellow-500 rounded-xl text-center text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 mb-3 uppercase font-bold text-lg">
-            <button id="btn-save-record" class="w-full py-3 bg-yellow-500 text-black font-bold rounded-xl hover:bg-yellow-400">SIMPAN SKOR</button>
+                class="w-full px-4 py-3 bg-gray-900 border border-yellow-500 rounded-xl text-center text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 mb-3 uppercase font-bold text-lg">
+            <button id="btn-save-record" class="w-full py-3 bg-yellow-500 text-black font-bold rounded-xl hover:bg-yellow-400 mt-2">SIMPAN SKOR</button>
         </div>
 
         <div id="standard-buttons" class="w-full max-w-xs flex flex-col gap-3">
-            <button id="btn-retry" class="w-full py-4 bg-white text-slate-900 font-bold rounded-xl shadow-lg hover:bg-gray-200 transition active:scale-95 text-lg">MAIN LAGI</button>
-            <a href="../index.html" class="w-full py-4 border border-slate-600 text-slate-300 font-bold rounded-xl hover:bg-slate-800 transition flex justify-center items-center gap-2">
+            <button id="btn-retry" class="w-full py-4 bg-white text-gray-900 font-bold rounded-xl shadow-lg active:scale-95 transition text-lg">MAIN LAGI</button>
+            <a href="../index.html" class="w-full py-4 border border-gray-600 text-gray-300 font-bold rounded-xl hover:bg-gray-800 transition flex justify-center items-center gap-2">
                🏠 KEMBALI KE MENU
             </a>
         </div>
     </div>
 
-    <div id="leaderboard-screen" class="hidden absolute inset-0 z-[70] bg-[#0B1120] flex-col items-center justify-center p-6">
-        <h2 class="text-3xl font-bold text-yellow-400 mb-8 tracking-wide">🏆 TOP 10 SKOR</h2>
-        <div class="bg-[#1e293b] w-full max-w-md rounded-2xl border border-slate-700 overflow-hidden flex flex-col shadow-2xl h-[60vh]">
-            <div class="grid grid-cols-3 bg-slate-800 p-4 font-bold text-xs uppercase text-slate-400 tracking-wider">
-                <div class="text-center">Rank</div>
+    <div id="leaderboard-screen" class="screen-section hidden flex-col items-center justify-center w-full h-full absolute inset-0 z-[70] bg-[#0B1120] p-6">
+        <h2 class="text-3xl font-bold text-yellow-400 mb-6 tracking-wide">🏆 TOP 10 SKOR</h2>
+        <div class="bg-[#1e293b] w-full max-w-md rounded-2xl border border-gray-700 overflow-hidden flex flex-col shadow-2xl h-[60vh]">
+            <div class="grid grid-cols-3 bg-gray-800 p-4 font-bold text-xs uppercase text-gray-400 tracking-wider">
+                <div class="text-center">#</div>
                 <div>Player</div>
                 <div class="text-right">Score</div>
             </div>
             <div id="leaderboard-list" class="overflow-y-auto hide-scroll p-0 flex-1"></div>
         </div>
-        <button id="btn-close-lb" class="mt-8 px-10 py-3 bg-slate-700 hover:bg-slate-600 rounded-full font-bold text-white transition border border-slate-600">TUTUP</button>
+        <button id="btn-close-lb" class="mt-6 px-10 py-3 bg-gray-700 hover:bg-gray-600 rounded-full font-bold text-white transition">TUTUP</button>
     </div>
 
     <script>
-        // CONFIG
+        /* CONFIG */
         const COLORS = {
-            merah:  { hex: '#ef4444', label: 'MERAH',  border: 'border-red-500', text: 'text-red-500', bg: 'hover:bg-red-500/10' },
-            biru:   { hex: '#3b82f6', label: 'BIRU',   border: 'border-blue-500', text: 'text-blue-500', bg: 'hover:bg-blue-500/10' },
-            hijau:  { hex: '#22c55e', label: 'HIJAU',  border: 'border-green-500', text: 'text-green-500', bg: 'hover:bg-green-500/10' },
-            kuning: { hex: '#eab308', label: 'KUNING', border: 'border-yellow-400', text: 'text-yellow-400', bg: 'hover:bg-yellow-500/10' },
-            ungu:   { hex: '#a855f7', label: 'UNGU',   border: 'border-purple-500', text: 'text-purple-500', bg: 'hover:bg-purple-500/10' },
-            oranye: { hex: '#f97316', label: 'ORANYE', border: 'border-orange-500', text: 'text-orange-500', bg: 'hover:bg-orange-500/10' },
-            pink:   { hex: '#ec4899', label: 'PINK',   border: 'border-pink-500', text: 'text-pink-500', bg: 'hover:bg-pink-500/10' },
-            cyan:   { hex: '#06b6d4', label: 'CYAN',   border: 'border-cyan-400', text: 'text-cyan-400', bg: 'hover:bg-cyan-500/10' }
+            merah:  { hex: '#ef4444', label: 'MERAH',  border: 'border-red-500', text: 'text-red-500' },
+            biru:   { hex: '#3b82f6', label: 'BIRU',   border: 'border-blue-500', text: 'text-blue-500' },
+            hijau:  { hex: '#22c55e', label: 'HIJAU',  border: 'border-green-500', text: 'text-green-500' },
+            kuning: { hex: '#eab308', label: 'KUNING', border: 'border-yellow-400', text: 'text-yellow-400' },
+            ungu:   { hex: '#a855f7', label: 'UNGU',   border: 'border-purple-500', text: 'text-purple-500' },
+            oranye: { hex: '#f97316', label: 'ORANYE', border: 'border-orange-500', text: 'text-orange-500' },
+            pink:   { hex: '#ec4899', label: 'PINK',   border: 'border-pink-500', text: 'text-pink-500' },
+            cyan:   { hex: '#06b6d4', label: 'CYAN',   border: 'border-cyan-400', text: 'text-cyan-400' }
         };
         const STORAGE_KEY = 'colorChaos_Score';
 
-        // STATE
+        /* STATE */
         let score = 0, timerInterval, isGameOver = false;
         let activeKeys = [], currentWordKey = '', currentColorKey = '', currentRule = 'color';
         let maxTime = 3000;
 
-        // ELEMENTS
+        /* DOM */
         const els = {
             start: document.getElementById('start-screen'),
             game: document.getElementById('game-ui'),
@@ -167,35 +178,28 @@
             buttons: document.getElementById('buttons-container')
         };
 
-        // --- INIT & NAVIGATION ---
-        function init() {
-            // Pasang event listener manual agar aman
-            document.getElementById('btn-start').onclick = startGame;
-            document.getElementById('btn-retry').onclick = startGame;
-            document.getElementById('btn-open-lb').onclick = showLeaderboard;
-            document.getElementById('btn-close-lb').onclick = closeLeaderboard;
-            document.getElementById('btn-save-record').onclick = saveRecord;
-        }
-
+        /* --- FUNGSI NAVIGASI (SISTEM SAKLAR) --- */
         function showScreen(screenId) {
-            // Sembunyikan semua dengan menghapus 'flex' dan menambah 'hidden'
-            ['start', 'game', 'over', 'lb'].forEach(k => {
-                els[k].classList.add('hidden');
-                els[k].classList.remove('flex');
+            // 1. Matikan SEMUA layar (tambah hidden, hapus flex)
+            document.querySelectorAll('.screen-section').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
             });
             
-            // Tampilkan yang diminta
-            const el = els[screenId];
-            el.classList.remove('hidden');
-            el.classList.add('flex');
+            // 2. Hidupkan layar TUJUAN (hapus hidden, tambah flex)
+            const target = document.getElementById(screenId);
+            if(target) {
+                target.classList.remove('hidden');
+                target.classList.add('flex');
+            }
         }
 
-        // --- GAME LOGIC ---
+        /* --- LOGIC GAME --- */
         function startGame() {
             score = 0;
             maxTime = 3000;
             isGameOver = false;
-            showScreen('game');
+            showScreen('game-ui'); // Pindah ke layar game
             updateUI();
             randomizeContext();
             nextRound();
@@ -212,16 +216,13 @@
             keys.forEach(key => {
                 const data = COLORS[key];
                 const btn = document.createElement('button');
-                btn.className = `w-full h-20 bg-[#1e293b] ${data.border} border-b-4 rounded-xl active:scale-95 active:border-b-0 active:mt-1 transition-all flex items-center justify-center shadow-lg group relative overflow-hidden`;
+                // Desain Tombol Sesuai Foto 2 (Dark dengan border bawah warna)
+                btn.className = `w-full h-20 bg-[#1e293b] ${data.border} border-b-4 rounded-xl active:scale-95 active:border-b-0 active:mt-1 transition-all flex items-center justify-center shadow-lg relative`;
                 
-                btn.innerHTML = `
-                    <div class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity ${data.text.replace('text', 'bg')}"></div>
-                    <span class="${data.text} font-bold text-2xl tracking-widest pointer-events-none">${data.label}</span>
-                `;
+                btn.innerHTML = `<span class="${data.text} font-bold text-2xl tracking-widest pointer-events-none drop-shadow-sm">${data.label}</span>`;
                 
-                // Gunakan onclick biasa yang lebih stabil
+                // Event Listener Aman
                 btn.onclick = () => handleAnswer(key);
-                
                 els.buttons.appendChild(btn);
             });
         }
@@ -296,7 +297,7 @@
             isGameOver = true;
             clearInterval(timerInterval);
             els.finalScore.innerText = score;
-            showScreen('over');
+            showScreen('game-over-screen');
 
             const scores = getScores();
             const minScore = scores.length < 10 ? 0 : scores[scores.length-1].score;
@@ -314,6 +315,7 @@
             }
         }
 
+        /* --- FITUR TAMBAHAN (Leaderboard & Save) --- */
         function saveRecord() {
             const name = document.getElementById('player-name-input').value.toUpperCase().substring(0,10) || "PLAYER";
             let scores = getScores();
@@ -327,9 +329,7 @@
             showLeaderboard();
         }
 
-        function getScores() {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        }
+        function getScores() { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
 
         function showLeaderboard() {
             const list = document.getElementById('leaderboard-list');
@@ -341,29 +341,31 @@
             } else {
                 scores.forEach((s, i) => {
                     const row = document.createElement('div');
-                    row.className = "flex justify-between p-4 border-b border-slate-700 text-sm hover:bg-white/5 transition";
-                    
-                    let rankStyle = "text-slate-400";
-                    if(i===0) rankStyle = "text-yellow-400 font-bold scale-110";
-                    if(i===1) rankStyle = "text-gray-300 font-bold";
-                    if(i===2) rankStyle = "text-orange-400 font-bold";
-
-                    row.innerHTML = `<span class="w-8 ${rankStyle}">${i+1}.</span><span class="flex-1 font-bold text-white tracking-wide">${s.name}</span><span class="text-cyan-400 font-mono text-base">${s.score}</span>`;
+                    row.className = "flex justify-between p-4 border-b border-gray-700 text-sm hover:bg-white/5 transition";
+                    let style = i===0 ? "text-yellow-400 font-bold" : (i===1 ? "text-gray-300 font-bold" : (i===2 ? "text-orange-400 font-bold" : "text-gray-400"));
+                    row.innerHTML = `<span class="w-8 ${style}">${i+1}.</span><span class="flex-1 font-bold text-white">${s.name}</span><span class="text-cyan-400 font-mono text-base">${s.score}</span>`;
                     list.appendChild(row);
                 });
             }
-            showScreen('lb');
+            showScreen('leaderboard-screen');
         }
 
         function closeLeaderboard() {
-            if(isGameOver) showScreen('over');
-            else showScreen('start');
+            if(isGameOver) showScreen('game-over-screen');
+            else showScreen('start-screen');
         }
 
         function updateUI() { els.score.innerText = score; }
 
-        // Start Everything
-        init();
+        /* --- INIT --- */
+        document.addEventListener('DOMContentLoaded', () => {
+            // Pasang event listener setelah halaman siap
+            document.getElementById('btn-start').onclick = startGame;
+            document.getElementById('btn-retry').onclick = startGame;
+            document.getElementById('btn-open-lb').onclick = showLeaderboard;
+            document.getElementById('btn-close-lb').onclick = closeLeaderboard;
+            document.getElementById('btn-save-record').onclick = saveRecord;
+        });
 
     </script>
 </body>

@@ -3,232 +3,209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flow Master</title>
-    
+    <title>Flow Master Premium</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* --- CSS WAJIB (JALAN TANPA INTERNET) --- */
-        * { box-sizing: border-box; }
-        
-        body {
+        /* --- 1. VISUAL & LAYOUT --- */
+        html, body {
             margin: 0; padding: 0;
-            width: 100vw; height: 100vh; height: 100dvh;
-            background-color: #0f172a; /* Dark Blue */
+            width: 100%; height: 100%; height: 100dvh;
+            background-color: #0f172a; /* Slate 900 */
             color: white;
             font-family: 'Fredoka', sans-serif;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            /* Allow touch default agar tombol jalan */
-            touch-action: manipulation; 
-            user-select: none;
+            display: flex; justify-content: center; align-items: center;
+            user-select: none; -webkit-user-select: none;
+            touch-action: manipulation; /* Tombol responsif */
         }
 
-        #app-container {
-            width: 100%; max-width: 450px;
-            height: 100%; position: relative;
-            background: #0f172a;
+        #app-frame {
+            width: 100%; max-width: 480px; height: 100%; position: relative;
+            background: radial-gradient(circle at top, #1e293b, #0f172a);
         }
 
-        /* SCREEN SYSTEM */
+        /* --- 2. SISTEM SCREEN (INSTANT V17) --- */
         .screen {
             position: absolute; inset: 0;
             display: none; /* Hidden by default */
-            flex-direction: column;
-            align-items: center; justify-content: center;
-            padding: 20px;
-            z-index: 10;
-            background: #0f172a;
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; z-index: 10;
         }
         
-        /* Menu muncul duluan tanpa JS */
+        /* Menu muncul duluan secara CSS (Anti-Loading) */
         #screen-menu { display: flex; z-index: 50; }
-        
-        .screen.active { display: flex !important; z-index: 60; }
+        .screen.active { display: flex !important; z-index: 60; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
-        /* CANVAS */
-        #canvas-wrapper {
-            background: #1e293b;
-            padding: 5px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            margin: 10px 0;
-        }
+        /* --- 3. CANVAS & GAME ELEMENTS --- */
         canvas {
-            border-radius: 12px;
-            display: block;
-            cursor: crosshair;
-            /* MATIKAN SCROLL HANYA DI CANVAS */
-            touch-action: none; 
-        }
-
-        /* TOMBOL (Native Style jika Tailwind Gagal) */
-        .btn {
-            background: #3b82f6; /* Blue */
-            color: white;
-            border: none;
-            border-bottom: 4px solid #1d4ed8;
-            padding: 15px 0;
-            width: 100%;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-bottom: 15px;
-            transition: transform 0.1s;
-            position: relative;
-            z-index: 100; /* Pastikan tombol di atas */
-        }
-        .btn:active { transform: translateY(4px); border-bottom: 0; }
-        .btn-secondary { background: #334155; border-bottom: 4px solid #0f172a; }
-        
-        .icon-btn {
-            width: 50px; height: 50px;
-            border-radius: 50%;
-            border: 2px solid #334155;
             background: #1e293b;
-            color: #94a3b8;
-            font-size: 20px;
-            cursor: pointer;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px -5px rgba(0, 0, 0, 0.6);
+            border: 2px solid #334155;
+            touch-action: none; /* Matikan scroll HANYA di canvas */
+            cursor: crosshair;
         }
 
-        /* DEBUG BAR */
-        #debug {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: red; color: white; font-size: 10px;
-            text-align: center; pointer-events: none; z-index: 9999;
-            display: none; /* Nyalakan via JS jika error */
+        /* Tombol Premium */
+        .btn-glow {
+            transition: all 0.1s; cursor: pointer; position: relative;
+            overflow: hidden;
         }
+        .btn-glow:active { transform: scale(0.95); filter: brightness(1.1); }
+
+        /* Dekorasi */
+        .anim-float { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        
+        /* Utility */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .text-gradient { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
 <body>
 
-    <div id="debug">System Ready</div>
-
-    <div id="app-container">
+    <div id="app-frame">
 
         <div id="screen-menu" class="screen">
-            <div style="margin-bottom: 40px; text-align: center;">
-                <h1 style="font-size: 50px; line-height: 1; color: #3b82f6; margin: 0;">FLOW</h1>
-                <h1 style="font-size: 50px; line-height: 1; color: #ec4899; margin: 0;">MASTER</h1>
-                <p style="color: #64748b; margin-top: 10px; letter-spacing: 2px;">V17 INSTANT</p>
+            <a href="../index.html" class="absolute top-6 left-6 bg-slate-800/80 px-4 py-2 rounded-full text-slate-300 font-bold text-sm no-underline btn-glow z-50 border border-slate-700">
+                <i class="fas fa-arrow-left mr-2"></i> Menu
+            </a>
+
+            <div class="mb-12 text-center anim-float">
+                <h1 class="text-7xl font-bold tracking-tighter drop-shadow-2xl mb-0 leading-none">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">FLOW</span>
+                </h1>
+                <h1 class="text-7xl font-bold tracking-tighter drop-shadow-2xl leading-none">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">MASTER</span>
+                </h1>
+                <div class="mt-6">
+                    <span class="bg-slate-800 px-4 py-1 rounded-full text-xs font-bold border border-slate-700 text-slate-400 tracking-widest">LOGIC EDITION</span>
+                </div>
             </div>
 
-            <div style="width: 100%; max-width: 280px;">
-                <button onclick="window.game.start()" class="btn">MAINKAN</button>
-                <button onclick="window.game.showLb()" class="btn btn-secondary">SKOR</button>
-                <a href="../index.html" class="btn btn-secondary" style="display:block; text-align:center; text-decoration:none; line-height:20px;">MENU UTAMA</a>
+            <div class="w-full max-w-xs space-y-5 relative z-20">
+                <button onclick="window.game.start()" class="btn-glow w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-5 rounded-2xl font-bold text-xl shadow-xl border-b-4 border-indigo-900 flex items-center justify-center gap-3">
+                    <i class="fas fa-play"></i> MAINKAN
+                </button>
+                
+                <button onclick="window.game.showLb()" class="btn-glow w-full bg-slate-700 text-white py-4 rounded-2xl font-bold text-lg shadow-lg border-b-4 border-slate-900 flex items-center justify-center gap-3">
+                    <i class="fas fa-trophy text-yellow-400"></i> TOP SKOR
+                </button>
             </div>
+            
+            <div class="mt-10 text-slate-600 text-xs font-mono relative z-10">V18.0 • FIXED & BEAUTIFUL</div>
         </div>
 
         <div id="screen-game" class="screen">
-            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 10px;">
-                <button onclick="window.game.menu()" class="icon-btn"><i class="fas fa-home"></i></button>
-                <div style="text-align: center;">
-                    <div style="font-size: 12px; color: #94a3b8;">LEVEL <span id="val-lvl" style="color:white; font-size:16px;">1</span></div>
-                    <div id="val-timer" style="font-family: monospace; color: #34d399;">00:00</div>
+            <div class="w-full max-w-md flex justify-between items-center mb-6 px-4 z-20">
+                <button onclick="window.game.menu()" class="btn-glow w-12 h-12 bg-slate-800 rounded-full text-slate-400 border border-slate-700 flex items-center justify-center text-lg shadow-lg">
+                    <i class="fas fa-home"></i>
+                </button>
+                
+                <div class="flex gap-3">
+                    <div class="bg-slate-800/90 px-4 py-2 rounded-xl border border-slate-700 shadow flex flex-col items-center min-w-[70px]">
+                        <span class="text-[10px] text-slate-400 font-bold">LEVEL</span>
+                        <span id="ui-level" class="text-white font-bold text-lg leading-none">1</span>
+                    </div>
+                    <div class="bg-slate-800/90 px-4 py-2 rounded-xl border border-slate-700 shadow flex flex-col items-center min-w-[80px]">
+                        <span class="text-[10px] text-slate-400 font-bold">WAKTU</span>
+                        <span id="ui-timer" class="text-emerald-400 font-bold text-lg leading-none font-mono">00:00</span>
+                    </div>
                 </div>
-                <button onclick="window.game.reset()" class="icon-btn"><i class="fas fa-undo"></i></button>
+                
+                <button onclick="window.game.reset()" class="btn-glow w-12 h-12 bg-slate-800 rounded-full text-slate-400 border border-slate-700 flex items-center justify-center text-lg shadow-lg">
+                    <i class="fas fa-undo"></i>
+                </button>
             </div>
 
-            <div id="canvas-wrapper">
-                <canvas id="gameCanvas" width="350" height="350"></canvas>
+            <div class="relative p-2 bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl shadow-2xl">
+                <div class="bg-slate-900 rounded-xl overflow-hidden relative">
+                    <canvas id="gameCanvas" width="350" height="350"></canvas>
+                    
+                    <div id="win-overlay" class="absolute inset-0 bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center hidden z-50">
+                        <i class="fas fa-check-circle text-6xl text-emerald-500 mb-4 anim-float"></i>
+                        <h2 class="text-3xl font-bold text-white mb-2">SEMPURNA!</h2>
+                        <p class="text-slate-400 mb-6 text-sm">Semua kotak terisi penuh.</p>
+                        <button onclick="window.game.next()" class="btn-glow bg-emerald-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg border-b-4 border-emerald-700 flex items-center gap-2">
+                            LEVEL BERIKUTNYA <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div id="win-panel" style="display:none; text-align: center; margin-top: 20px;">
-                <h2 style="color: #34d399; font-size: 24px; margin-bottom: 10px;">SELESAI!</h2>
-                <button onclick="window.game.next()" class="btn" style="background: #10b981; border-color: #047857;">LEVEL LANJUT</button>
-            </div>
-            
-            <div style="margin-top: 20px; font-size: 12px; color: #64748b; text-align: center;">
-                Hubungkan warna. Semua kotak harus terisi!
+            <div class="mt-8 text-center text-slate-500 text-xs font-medium px-4 z-10 opacity-70">
+                Hubungkan warna yang sama. <br> Seluruh kotak harus terisi warna!
             </div>
         </div>
 
         <div id="screen-lb" class="screen">
-            <h2 style="color: #eab308; margin-bottom: 20px;">🏆 TOP SKOR</h2>
-            <div style="background: #1e293b; width: 100%; border-radius: 12px; padding: 10px; flex: 1; max-height: 50%;">
-                <div id="lb-list" style="overflow-y: auto; height: 100%; font-size: 14px;"></div>
+            <div class="bg-slate-800 w-full max-w-md rounded-3xl border border-slate-700 overflow-hidden flex flex-col shadow-2xl h-[60vh] mx-4">
+                <div class="bg-slate-900 p-5 border-b border-slate-700 flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-yellow-500 flex items-center gap-2">
+                        <i class="fas fa-crown"></i> TOP 10 SKOR
+                    </h2>
+                    <button onclick="window.game.menu()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition btn-glow">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="lb-list" class="overflow-y-auto p-0 flex-1 hide-scroll bg-slate-800/50"></div>
             </div>
-            <button onclick="window.game.menu()" class="btn btn-secondary" style="margin-top: 20px;">TUTUP</button>
         </div>
 
     </div>
 
     <script>
-        // Error Handler
-        window.onerror = function(msg) {
-            var d = document.getElementById('debug');
-            d.style.display = 'block';
-            d.innerHTML = "ERR: " + msg;
-        };
-
-        // --- DATA LEVEL ---
-        var LEVELS = [
+        // CONFIG
+        const COLORS = { 1:'#ef4444', 2:'#3b82f6', 3:'#22c55e', 4:'#eab308', 5:'#d946ef', 6:'#f97316', 7:'#06b6d4', 8:'#94a3b8' };
+        
+        // LEVEL DATA
+        const LEVELS = [
             {size:5, grid:[[1,0,0,0,2],[0,0,0,0,2],[0,3,3,0,0],[4,0,0,0,0],[4,0,1,5,5]]},
             {size:5, grid:[[4,4,0,0,1],[0,0,3,0,0],[1,0,3,0,0],[5,0,0,0,0],[5,0,0,2,2]]},
             {size:6, grid:[[1,0,0,2,0,0],[0,0,0,2,0,0],[0,3,4,0,0,0],[0,3,4,0,5,0],[0,0,0,0,5,0],[1,0,0,0,0,0]]},
             {size:6, grid:[[1,0,0,0,0,1],[0,0,3,3,0,0],[0,0,4,4,0,0],[0,0,0,0,2,2],[0,5,5,0,0,0],[0,0,0,0,0,0]]},
             {size:7, grid:[[1,0,0,0,0,0,2],[0,0,3,0,0,0,2],[0,0,3,0,4,0,0],[0,5,0,0,4,0,0],[0,5,0,0,0,0,6],[0,0,0,0,0,0,6],[1,0,0,0,0,0,0]]}
         ];
-        var COLORS = {1:'#ef4444', 2:'#3b82f6', 3:'#22c55e', 4:'#eab308', 5:'#d946ef', 6:'#f97316', 7:'#06b6d4', 8:'#94a3b8'};
 
-        // --- GAME OBJECT ---
+        // GLOBAL GAME OBJECT
         window.game = {
             lvl: 0,
-            grid: [],
-            paths: {},
-            active: null,
+            grid: [], // Grid saat ini (berubah)
+            paths: {}, // Menyimpan koordinat jalur per warna
+            activeColor: null,
             done: false,
             timer: null,
-            startT: 0,
+            startTime: 0,
             cvs: null,
             ctx: null,
             cell: 0,
 
-            // STARTUP
+            // --- INIT ---
             init: function() {
                 this.cvs = document.getElementById('gameCanvas');
                 this.ctx = this.cvs.getContext('2d');
-                
-                // Event Listeners (Passive false wajib untuk prevent scroll)
-                var self = this;
-                this.cvs.addEventListener('mousedown', function(e){ self.down(e); });
-                this.cvs.addEventListener('mousemove', function(e){ self.move(e); });
-                window.addEventListener('mouseup', function(){ self.up(); });
-                
-                this.cvs.addEventListener('touchstart', function(e){ 
-                    e.preventDefault(); 
-                    self.down(e.touches[0]); 
-                }, {passive: false});
-                
-                this.cvs.addEventListener('touchmove', function(e){ 
-                    e.preventDefault(); 
-                    self.move(e.touches[0]); 
-                }, {passive: false});
-                
-                window.addEventListener('touchend', function(){ self.up(); });
-                window.addEventListener('resize', function(){ self.resize(); });
+                this.initInput();
+                window.addEventListener('resize', () => this.resize());
             },
 
-            // SCREEN SWITCH
+            // --- SCREEN MANAGEMENT ---
             show: function(id) {
                 document.getElementById('screen-menu').style.display = 'none';
                 document.getElementById('screen-game').style.display = 'none';
                 document.getElementById('screen-lb').style.display = 'none';
                 
-                var el = document.getElementById(id);
-                el.style.display = 'flex';
+                // Manual display flex (override CSS class)
+                document.getElementById(id).style.display = 'flex';
                 
-                if(id === 'screen-game') setTimeout(function(){ window.game.resize(); }, 100);
+                if(id === 'screen-game') setTimeout(() => this.resize(), 50);
             },
 
-            // ACTIONS
-            start: function() { this.lvl=0; this.load(0); this.show('screen-game'); },
+            // --- ACTIONS ---
+            start: function() { this.lvl = 0; this.load(0); this.show('screen-game'); },
             menu: function() { clearInterval(this.timer); this.show('screen-menu'); },
             showLb: function() { this.renderLb(); this.show('screen-lb'); },
             reset: function() { this.load(this.lvl); },
@@ -238,23 +215,28 @@
                 else this.load(this.lvl);
             },
 
-            // LOGIC
+            // --- GAME LOGIC (FIXED) ---
             load: function(idx) {
-                var l = LEVELS[idx];
+                const l = LEVELS[idx];
+                // Deep Copy Grid Awal
                 this.grid = JSON.parse(JSON.stringify(l.grid));
                 this.paths = {};
-                this.active = null;
+                this.activeColor = null;
                 this.done = false;
 
-                // Init paths
-                for(var r=0; r<l.size; r++) for(var c=0; c<l.size; c++) {
-                    var v = this.grid[r][c];
-                    if(v>0) this.paths[v] = [];
+                // Init Paths dari Titik Awal
+                const size = l.size;
+                for(let r=0; r<size; r++) {
+                    for(let c=0; c<size; c++) {
+                        let v = this.grid[r][c];
+                        if(v > 0) this.paths[v] = []; // Wadah kosong untuk jalur
+                    }
                 }
 
-                document.getElementById('val-lvl').innerText = idx+1;
-                document.getElementById('val-timer').innerText = "00:00";
-                document.getElementById('win-panel').style.display = 'none';
+                // UI
+                document.getElementById('ui-level').innerText = idx + 1;
+                document.getElementById('ui-timer').innerText = "00:00";
+                document.getElementById('win-overlay').classList.add('hidden');
                 
                 this.resize();
                 this.startTimer();
@@ -263,178 +245,171 @@
 
             resize: function() {
                 if(!this.cvs) return;
-                var w = Math.min(window.innerWidth - 30, 380);
+                const w = Math.min(window.innerWidth - 40, 380);
                 this.cvs.width = w; this.cvs.height = w;
                 this.cvs.style.width = w+'px'; this.cvs.style.height = w+'px';
                 
-                var size = LEVELS[this.lvl].size;
+                const size = LEVELS[this.lvl].size;
                 this.cell = w / size;
                 this.draw();
             },
 
+            // --- INPUT SYSTEM (MOUSE + TOUCH) ---
+            initInput: function() {
+                const start = (e) => this.down(e);
+                const move = (e) => this.move(e);
+                const end = () => this.up();
+
+                this.cvs.addEventListener('mousedown', start);
+                this.cvs.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', end);
+
+                this.cvs.addEventListener('touchstart', (e) => { e.preventDefault(); start(e.touches[0]); }, {passive: false});
+                this.cvs.addEventListener('touchmove', (e) => { e.preventDefault(); move(e.touches[0]); }, {passive: false});
+                window.addEventListener('touchend', end);
+            },
+
             getPos: function(e) {
-                var r = this.cvs.getBoundingClientRect();
+                const r = this.cvs.getBoundingClientRect();
                 return {
                     c: Math.floor((e.clientX - r.left) / this.cell),
                     r: Math.floor((e.clientY - r.top) / this.cell)
                 };
             },
 
+            // --- MOVEMENT LOGIC (STRICT) ---
             down: function(e) {
                 if(this.done) return;
-                var p = this.getPos(e);
-                var size = LEVELS[this.lvl].size;
+                const p = this.getPos(e);
+                const size = LEVELS[this.lvl].size;
                 if(p.r<0 || p.r>=size || p.c<0 || p.c>=size) return;
 
-                var base = LEVELS[this.lvl].grid;
-                var val = base[p.r][p.c] || this.grid[p.r][p.c];
+                // Cek apa isi cell saat ini
+                const val = this.grid[p.r][p.c];
+                const baseVal = LEVELS[this.lvl].grid[p.r][p.c]; // Cek titik awal asli
+
+                // Mulai gambar HANYA jika klik di Titik Awal ATAU Jalur yang sudah ada
                 if(val > 0) {
-                    this.active = val;
-                    this.paths[val] = [{r:p.r, c:p.c}];
-                    this.updateG();
+                    this.activeColor = val;
+                    // Jika klik di titik awal asli, reset jalur
+                    if(baseVal > 0) {
+                        this.paths[val] = [{r:p.r, c:p.c}];
+                        this.updateGrid();
+                    } else {
+                        // Jika klik di tengah jalur, potong jalur sampai sini (Resume drawing)
+                        const path = this.paths[val];
+                        const idx = path.findIndex(pt => pt.r === p.r && pt.c === p.c);
+                        if(idx !== -1) {
+                            this.paths[val] = path.slice(0, idx+1);
+                            this.updateGrid();
+                        }
+                    }
                     this.draw();
                 }
             },
 
             move: function(e) {
-                if(!this.active || this.done) return;
-                var p = this.getPos(e);
-                var size = LEVELS[this.lvl].size;
+                if(!this.activeColor || this.done) return;
+                const p = this.getPos(e);
+                const size = LEVELS[this.lvl].size;
                 if(p.r<0 || p.r>=size || p.c<0 || p.c>=size) return;
 
-                var path = this.paths[this.active];
-                var last = path[path.length-1];
+                const path = this.paths[this.activeColor];
+                const last = path[path.length-1];
 
+                // Cek Tetangga (Atas/Bawah/Kiri/Kanan)
                 if((last.r!==p.r || last.c!==p.c) && (Math.abs(last.r-p.r)+Math.abs(last.c-p.c)===1)) {
-                    var base = LEVELS[this.lvl].grid;
-                    var tb = base[p.r][p.c]; // Target Base
-                    var tc = this.grid[p.r][p.c]; // Target Current
-
-                    // Backtrack
-                    var idx = -1;
-                    for(var i=0; i<path.length; i++) if(path[i].r===p.r && path[i].c===p.c) idx=i;
                     
-                    if(idx !== -1) {
-                        this.paths[this.active] = path.slice(0, idx+1);
-                        this.updateG(); this.draw(); return;
+                    const targetVal = this.grid[p.r][p.c]; // Isi cell tujuan
+                    const baseVal = LEVELS[this.lvl].grid[p.r][p.c]; // Apakah tujuan itu titik awal orang lain?
+
+                    // LOGIKA 1: BACKTRACK (Mundur Hapus Jalur)
+                    const existingIdx = path.findIndex(pt => pt.r === p.r && pt.c === p.c);
+                    if(existingIdx !== -1) {
+                        this.paths[this.activeColor] = path.slice(0, existingIdx+1);
+                        this.updateGrid();
+                        this.draw();
+                        return;
                     }
 
-                    // Forward
-                    if((tc===0 || tc===this.active) && (tb===0 || tb===this.active)) {
+                    // LOGIKA 2: MAJU (Validasi Tabrakan)
+                    // Boleh masuk jika: KOSONG (0) ATAU Warna Sendiri (Self)
+                    // DILARANG jika: Nabrak Titik Awal Orang Lain (baseVal != 0 dan != activeColor)
+                    if((targetVal === 0 || targetVal === this.activeColor) && (baseVal === 0 || baseVal === this.activeColor)) {
                         path.push({r:p.r, c:p.c});
-                        this.updateG(); this.draw(); this.check();
+                        this.updateGrid();
+                        this.draw();
+                        this.checkWin();
                     }
                 }
             },
 
-            up: function() { this.active = null; },
+            up: function() { this.activeColor = null; },
 
-            updateG: function() {
-                var size = LEVELS[this.lvl].size;
-                var base = LEVELS[this.lvl].grid;
-                for(var r=0; r<size; r++) for(var c=0; c<size; c++) {
-                    if(base[r][c]===0) this.grid[r][c] = 0;
+            // --- HELPER: UPDATE GRID FROM PATHS ---
+            updateGrid: function() {
+                const size = LEVELS[this.lvl].size;
+                const base = LEVELS[this.lvl].grid;
+                
+                // 1. Reset Grid ke Base Level (Hapus semua jalur lama)
+                for(let r=0; r<size; r++) {
+                    for(let c=0; c<size; c++) {
+                        this.grid[r][c] = (base[r][c] > 0) ? base[r][c] : 0;
+                    }
                 }
-                for(var k in this.paths) {
-                    var id = parseInt(k);
-                    var p = this.paths[k];
-                    for(var i=0; i<p.length; i++) if(base[p[i].r][p[i].c]===0) this.grid[p[i].r][p[i].c] = id;
+
+                // 2. Gambar ulang jalur dari data 'paths'
+                for(const [k, path] of Object.entries(this.paths)) {
+                    const id = parseInt(k);
+                    path.forEach(pt => {
+                        this.grid[pt.r][pt.c] = id;
+                    });
                 }
             },
 
+            // --- RENDERER (GLOWING STYLE) ---
             draw: function() {
-                var size = LEVELS[this.lvl].size;
+                const size = LEVELS[this.lvl].size;
                 this.ctx.clearRect(0,0,this.cvs.width,this.cvs.height);
                 
-                // Grid
+                // Grid Lines
                 this.ctx.strokeStyle = '#334155'; this.ctx.lineWidth = 1; this.ctx.beginPath();
-                for(var i=0; i<=size; i++) {
-                    var p=i*this.cell;
+                for(let i=0; i<=size; i++) {
+                    let p=i*this.cell;
                     this.ctx.moveTo(p,0); this.ctx.lineTo(p,this.cvs.height);
                     this.ctx.moveTo(0,p); this.ctx.lineTo(this.cvs.width,p);
                 }
                 this.ctx.stroke();
 
-                // Path
-                for(var k in this.paths) {
-                    var p = this.paths[k];
-                    if(p.length<2) continue;
-                    this.ctx.strokeStyle = COLORS[k];
-                    this.ctx.lineWidth = this.cell*0.4;
+                // Draw Paths
+                for(const [k, path] of Object.entries(this.paths)) {
+                    if(path.length < 2) continue;
+                    const color = COLORS[k];
+                    this.ctx.strokeStyle = color;
+                    this.ctx.lineWidth = this.cell * 0.45;
                     this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round';
+                    this.ctx.shadowBlur = 15; this.ctx.shadowColor = color; // Glow Effect
+                    
                     this.ctx.beginPath();
-                    this.ctx.moveTo(p[0].c*this.cell+this.cell/2, p[0].r*this.cell+this.cell/2);
-                    for(var i=1; i<p.length; i++) this.ctx.lineTo(p[i].c*this.cell+this.cell/2, p[i].r*this.cell+this.cell/2);
-                    this.ctx.stroke();
-                }
-
-                // Dots
-                var base = LEVELS[this.lvl].grid;
-                for(var r=0; r<size; r++) for(var c=0; c<size; c++) {
-                    var v = base[r][c];
-                    if(v>0) {
-                        this.ctx.fillStyle = COLORS[v];
-                        this.ctx.beginPath();
-                        this.ctx.arc(c*this.cell+this.cell/2, r*this.cell+this.cell/2, this.cell*0.3, 0, Math.PI*2);
-                        this.ctx.fill();
+                    this.ctx.moveTo(path[0].c*this.cell+this.cell/2, path[0].r*this.cell+this.cell/2);
+                    for(let i=1; i<path.length; i++) {
+                        this.ctx.lineTo(path[i].c*this.cell+this.cell/2, path[i].r*this.cell+this.cell/2);
                     }
-                }
-            },
-
-            check: function() {
-                var size = LEVELS[this.lvl].size;
-                var base = LEVELS[this.lvl].grid;
-                
-                // 1. Cek Full
-                for(var r=0; r<size; r++) for(var c=0; c<size; c++) {
-                    if(base[r][c]===0 && this.grid[r][c]===0) return;
+                    this.ctx.stroke();
+                    this.ctx.shadowBlur = 0; // Reset glow
                 }
 
-                // 2. Cek Koneksi (Min path length 2 & all colors)
-                var colors = {};
-                for(var r=0; r<size; r++) for(var c=0; c<size; c++) if(base[r][c]>0) colors[base[r][c]]=true;
-                
-                for(var k in colors) {
-                    if(!this.paths[k] || this.paths[k].length<2) return;
-                }
-
-                this.done = true;
-                clearInterval(this.timer);
-                document.getElementById('win-panel').style.display = 'block';
-                this.save(this.lvl+1);
-            },
-
-            startTimer: function() {
-                clearInterval(this.timer);
-                this.startT = Date.now();
-                this.timer = setInterval(function(){
-                    var d = Math.floor((Date.now()-window.game.startT)/1000);
-                    var m = Math.floor(d/60).toString().padStart(2,'0');
-                    var s = (d%60).toString().padStart(2,'0');
-                    document.getElementById('val-timer').innerText = m+":"+s;
-                }, 1000);
-            },
-
-            save: function(lvl) {
-                var s = JSON.parse(localStorage.getItem('flowV17')||"[]");
-                var f=false;
-                for(var i=0; i<s.length; i++) if(s[i].n==='YOU') { s[i].l = Math.max(s[i].l, lvl); f=true; }
-                if(!f) s.push({n:'YOU', l:lvl});
-                localStorage.setItem('flowV17', JSON.stringify(s));
-            },
-
-            renderLb: function() {
-                var s = JSON.parse(localStorage.getItem('flowV17')||"[]");
-                if(s.length===0) s=[{n:'PRO', l:50}];
-                s.sort(function(a,b){return b.l-a.l});
-                var h = '';
-                for(var i=0; i<s.length; i++) h += '<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #334155;"><span>#'+(i+1)+' '+s[i].n+'</span><span style="color:#34d399">Lvl '+s[i].l+'</span></div>';
-                document.getElementById('lb-list').innerHTML = h;
-            }
-        };
-
-        // START
-        window.onload = function() { window.game.init(); };
-    </script>
-</body>
-</html>
+                // Draw Endpoints
+                const base = LEVELS[this.lvl].grid;
+                for(let r=0; r<size; r++) for(let c=0; c<size; c++) {
+                    let v = base[r][c];
+                    if(v > 0) {
+                        this.ctx.fillStyle = COLORS[v];
+                        let cx = c*this.cell+this.cell/2, cy = r*this.cell+this.cell/2;
+                        this.ctx.beginPath();
+                        this.ctx.arc(cx, cy, this.cell*0.3, 0, Math.PI*2);
+                        this.ctx.fill();
+                        // Inner Dot
+                        this.ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                        this.ctx.beginPath();
+ 

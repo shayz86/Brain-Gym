@@ -22,7 +22,7 @@
             color: white;
         }
 
-        /* --- UI Layout --- */
+        /* --- Tata Letak UI --- */
         #topBar {
             height: var(--top-bar-height);
             background: #1e293b;
@@ -52,7 +52,7 @@
 
         canvas { display: block; width: 100%; height: 100%; }
 
-        /* --- HUD Components --- */
+        /* --- Komponen HUD --- */
         .hud-group { display: flex; flex-direction: column; align-items: center; }
         .hud-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: bold; }
         .hud-value { font-weight: 800; font-size: 1.2rem; line-height: 1; }
@@ -132,7 +132,7 @@
 
         <!-- Menu Utama -->
         <div id="menuOverlay" class="overlay">
-            <h1 class="text-5xl font-black text-white mb-2 italic tracking-tighter">BREAKOUT <span class="text-blue-500">PRO</span></h1>
+            <h1 class="text-5xl font-black text-white mb-2 italic tracking-tighter text-center">BREAKOUT <span class="text-blue-500">PRO</span></h1>
             <p class="text-slate-400 mb-10 text-xs tracking-[0.3em] uppercase">Infinite Stages & Patterns</p>
             
             <div class="flex flex-col gap-4 w-64">
@@ -141,15 +141,27 @@
             </div>
         </div>
 
-        <!-- Status Selesai -->
+        <!-- Overlay Skor Tertinggi (Leaderboard) -->
+        <div id="leaderboardOverlay" class="overlay hidden">
+            <div class="bg-slate-800 p-8 rounded-3xl border-2 border-slate-700 w-80 max-w-full shadow-2xl">
+                <h2 class="text-2xl font-black text-white mb-6 text-center tracking-tight">TOP 10 SKOR</h2>
+                <div id="scoreList" class="space-y-2 mb-8 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Skor akan muncul di sini via JS -->
+                </div>
+                <button id="closeLeaderboardBtn" class="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold transition-all uppercase tracking-wider text-sm">Kembali</button>
+            </div>
+        </div>
+
+        <!-- Status Selesai / Game Over -->
         <div id="statusOverlay" class="overlay hidden">
             <h2 id="statusTitle" class="text-4xl font-black mb-2">STAGE CLEAR!</h2>
             <p class="text-slate-400">Skor Anda:</p>
             <p id="finalScore" class="text-5xl font-black text-blue-500 mb-10">0</p>
+            <div id="newRecordMsg" class="hidden text-yellow-400 font-bold mb-6 animate-bounce">✨ REKOR BARU! ✨</div>
             
             <div class="flex flex-col gap-3 w-64">
-                <button id="restartBtn" class="bg-blue-600 py-4 rounded-xl font-bold shadow-lg">MAIN LAGI</button>
-                <button id="homeBtn" class="bg-slate-800 py-3 rounded-xl font-bold">MENU UTAMA</button>
+                <button id="restartBtn" class="bg-blue-600 py-4 rounded-xl font-bold shadow-lg transition-all active:scale-95">MAIN LAGI</button>
+                <button id="homeBtn" class="bg-slate-800 py-3 rounded-xl font-bold shadow-lg transition-all active:scale-95">MENU UTAMA</button>
             </div>
         </div>
 
@@ -158,8 +170,8 @@
             <div class="bg-slate-800 p-8 rounded-3xl border-2 border-slate-700 text-center shadow-2xl">
                 <h3 class="text-2xl font-bold mb-6">Keluar dari Game?</h3>
                 <div class="flex gap-4 justify-center">
-                    <button id="confirmYes" class="bg-red-600 px-10 py-3 rounded-xl font-bold hover:bg-red-500">YA</button>
-                    <button id="confirmNo" class="bg-slate-600 px-10 py-3 rounded-xl font-bold hover:bg-slate-500">TIDAK</button>
+                    <button id="confirmYes" class="bg-red-600 px-10 py-3 rounded-xl font-bold hover:bg-red-500 shadow-lg">YA</button>
+                    <button id="confirmNo" class="bg-slate-600 px-10 py-3 rounded-xl font-bold hover:bg-slate-500 shadow-lg">TIDAK</button>
                 </div>
             </div>
         </div>
@@ -174,7 +186,7 @@
 
     <script>
         /**
-         * AUDIO SYSTEM (Synthesized)
+         * SISTEM SUARA (Synthesized)
          */
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTone(freq, type, duration, vol = 0.08) {
@@ -199,7 +211,7 @@
         };
 
         /**
-         * GAME ENGINE
+         * ENGINE GAME
          */
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -214,23 +226,21 @@
         let activePowerUps = [];
         let animationId;
 
-        // --- 10 POLA IKONIK ---
+        // --- 10 POLA UNIK ---
         const PATTERNS = [
-            (c, r) => (r < 1 ? 3 : (r < 2 ? 2 : 1)), // Pola 1: Sederhana (Level 1 sangat cepat)
-            (c, r) => (c % 2 === 0 ? 3 : 1),        // Pola 2: Garis Vertikal
-            (c, r) => (r % 2 === 0 ? 2 : 0),        // Pola 3: Baris Zebra
-            (c, r) => (c === r || c === 9-r-1 ? 3 : 1), // Pola 4: Bentuk X
-            (c, r) => (c < 2 || c > 6 || r < 2 ? 3 : 0), // Pola 5: Bingkai
-            (c, r, cols, rows) => (Math.abs(c - (cols/2)) + r < 5 ? 3 : 0), // Pola 6: Piramida
-            (c, r) => (c % 3 === 0 ? 3 : (c % 3 === 1 ? 2 : 1)), // Pola 7: Tri-Color
-            (c, r) => (r === 2 ? 3 : (r < 2 ? 1 : 2)), // Pola 8: Pembatas Tengah
-            (c, r) => ((c+r)%2 === 0 ? 2 : 0),      // Pola 9: Checkerboard
-            (c, r) => (3)                            // Pola 10: Full Red (Boss)
+            (c, r) => (r < 1 ? 3 : (r < 2 ? 2 : 1)), 
+            (c, r) => (c % 2 === 0 ? 3 : 1),        
+            (c, r) => (r % 2 === 0 ? 2 : 0),        
+            (c, r) => (c === r || c === 9-r-1 ? 3 : 1), 
+            (c, r) => (c < 2 || c > 6 || r < 2 ? 3 : 0), 
+            (c, r, cols, rows) => (Math.abs(c - (cols/2)) + r < 5 ? 3 : 0), 
+            (c, r) => (c % 3 === 0 ? 3 : (c % 3 === 1 ? 2 : 1)), 
+            (c, r) => (r === 2 ? 3 : (r < 2 ? 1 : 2)), 
+            (c, r) => ((c+r)%2 === 0 ? 2 : 0),      
+            (c, r) => (3)                            
         ];
 
-        // --- DINAMIS KONFIGURASI GRID ---
         function getLevelConfig(lv) {
-            // Level 1: 5x3, Level 10+: 9x7
             const cols = Math.min(9, 4 + Math.ceil(lv / 2));
             const rows = Math.min(7, 2 + Math.ceil(lv / 3));
             return { cols, rows, padding: 8, top: 40, left: 20, h: 22 };
@@ -264,41 +274,26 @@
             paddle.x = (canvas.width - paddle.w) / 2;
             ball.x = canvas.width / 2;
             ball.y = paddle.y - 20;
-            
-            // Kecepatan meningkat 0.3 per level selamanya
             const currentSpeed = state.baseSpeed + (state.level * 0.3);
             const angle = (Math.random() * 40 - 20) * (Math.PI / 180);
             ball.dx = currentSpeed * Math.sin(angle);
             ball.dy = -currentSpeed;
         }
 
-        /**
-         * PHYSICS
-         */
         function update() {
             if (!state.running || state.paused) return;
 
             ball.x += ball.dx;
             ball.y += ball.dy;
 
-            // Wall Collision (Fixed: No ghosting)
-            if (ball.x - ball.radius < 0) {
-                ball.dx = Math.abs(ball.dx);
-                ball.x = ball.radius;
-                SFX.brick();
-            } else if (ball.x + ball.radius > canvas.width) {
-                ball.dx = -Math.abs(ball.dx);
-                ball.x = canvas.width - ball.radius;
-                SFX.brick();
-            }
+            // Dinding
+            if (ball.x - ball.radius < 0) { ball.dx = Math.abs(ball.dx); ball.x = ball.radius; SFX.brick(); } 
+            else if (ball.x + ball.radius > canvas.width) { ball.dx = -Math.abs(ball.dx); ball.x = canvas.width - ball.radius; SFX.brick(); }
 
-            if (ball.y - ball.radius < 0) {
-                ball.dy = Math.abs(ball.dy);
-                ball.y = ball.radius;
-                SFX.brick();
-            }
+            // Langit
+            if (ball.y - ball.radius < 0) { ball.dy = Math.abs(ball.dy); ball.y = ball.radius; SFX.brick(); }
 
-            // Lose condition
+            // Gagal
             if (ball.y + ball.radius > canvas.height) {
                 state.lives--;
                 SFX.death();
@@ -308,11 +303,9 @@
                 return;
             }
 
-            // Paddle Collision
-            if (ball.y + ball.radius > paddle.y && 
-                ball.y - ball.radius < paddle.y + paddle.h &&
+            // Paddle
+            if (ball.y + ball.radius > paddle.y && ball.y - ball.radius < paddle.y + paddle.h &&
                 ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.dy > 0) {
-                
                 let hitPos = (ball.x - (paddle.x + paddle.w/2)) / (paddle.w/2);
                 let speed = Math.sqrt(ball.dx**2 + ball.dy**2);
                 ball.dx = speed * hitPos * 0.85;
@@ -322,7 +315,7 @@
                 ball.y = paddle.y - ball.radius;
             }
 
-            // Brick Collision (Single hit detection per frame)
+            // Bata
             let collisionOccurred = false;
             for(let c=0; c<bricks.length && !collisionOccurred; c++) {
                 for(let r=0; r<bricks[c].length && !collisionOccurred; r++) {
@@ -334,12 +327,9 @@
 
                         if (ball.x + ball.radius > b.x && ball.x - ball.radius < b.x + b.w &&
                             ball.y + ball.radius > b.y && ball.y - ball.radius < b.y + cfg.h) {
-                            
                             let overlapX = Math.min(ball.x + ball.radius - b.x, b.x + b.w - (ball.x - ball.radius));
                             let overlapY = Math.min(ball.y + ball.radius - b.y, b.y + cfg.h - (ball.y - ball.radius));
-
-                            if (overlapX < overlapY) ball.dx *= -1;
-                            else ball.dy *= -1;
+                            if (overlapX < overlapY) ball.dx *= -1; else ball.dy *= -1;
 
                             b.hits--;
                             if (b.hits <= 0) {
@@ -358,50 +348,63 @@
                 }
             }
 
-            // Power-ups
+            // Power-ups & Menang Level
             powerUps.forEach((p, i) => {
                 p.y += 2.8;
                 if (p.y > canvas.height) powerUps.splice(i, 1);
                 else if (p.y + p.r > paddle.y && p.x > paddle.x && p.x < paddle.x + paddle.w) {
-                    applyPowerUp(p.type);
-                    powerUps.splice(i, 1);
-                    SFX.powerUp();
+                    applyPowerUp(p.type); powerUps.splice(i, 1); SFX.powerUp();
                 }
             });
+            activePowerUps.forEach((ap, i) => { if (Date.now() > ap.expires) { ap.deactivate(); activePowerUps.splice(i, 1); updatePowerUpUI(); } });
+            if (bricks.every(col => col.every(b => b.status === 0))) { state.level++; SFX.win(); initLevel(); updateHUD(); }
 
-            activePowerUps.forEach((ap, i) => {
-                if (Date.now() > ap.expires) {
-                    ap.deactivate();
-                    activePowerUps.splice(i, 1);
-                    updatePowerUpUI();
-                }
-            });
-
-            // Level Clear
-            if (bricks.every(col => col.every(b => b.status === 0))) {
-                state.level++;
-                SFX.win();
-                initLevel();
-                updateHUD();
-            }
-
-            // Visual Lerps
             ball.radius += (ball.tRadius - ball.radius) * 0.1;
             paddle.w += (paddle.tw - paddle.w) * 0.1;
         }
 
         /**
-         * POWER-UP SYSTEM
+         * SISTEM SKOR TERTINGGI (LEADERBOARD)
+         */
+        function saveScore() {
+            const scores = JSON.parse(localStorage.getItem('bo_scores_ultimate') || '[]');
+            const isRecord = scores.length === 0 || state.score > scores[0];
+            scores.push(state.score);
+            scores.sort((a, b) => b - a);
+            localStorage.setItem('bo_scores_ultimate', JSON.stringify(scores.slice(0, 10)));
+            return isRecord;
+        }
+
+        function showLeaderboard() {
+            const scores = JSON.parse(localStorage.getItem('bo_scores_ultimate') || '[]');
+            const list = document.getElementById('scoreList');
+            list.innerHTML = '';
+
+            if (scores.length === 0) {
+                list.innerHTML = '<p class="text-slate-500 text-center py-4 italic">Belum ada skor tercatat</p>';
+            } else {
+                scores.forEach((s, i) => {
+                    const isTop = i === 0;
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center p-3 rounded-xl ${isTop ? 'bg-blue-600/30 border border-blue-500/50' : 'bg-slate-700/50'}">
+                            <span class="font-bold text-slate-400 w-8">#${i + 1}</span>
+                            <span class="font-black text-white text-lg tracking-wider">${s.toLocaleString()}</span>
+                            <span>${isTop ? '👑' : ''}</span>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('leaderboardOverlay').classList.remove('hidden');
+        }
+
+        /**
+         * POWER-UP & VISUAL
          */
         const PWR_TYPES = {
-            WIDE: { label: '↔️ LEBAR', color: '#3b82f6', 
-                act: () => paddle.tw = 180, de: () => paddle.tw = 110, dur: 9000 },
-            SLOW: { label: '🐢 LAMBAT', color: '#fbbf24', 
-                act: () => { ball.dx *= 0.6; ball.dy *= 0.6; }, de: () => { ball.dx /= 0.6; ball.dy /= 0.6; }, dur: 7000 },
-            LIFE: { label: '❤️ BONUS', color: '#ef4444', 
-                act: () => { state.lives = Math.min(state.lives + 1, 10); updateHUD(); }, de: () => {}, dur: 0 },
-            BIG: { label: '⚪ BESAR', color: '#f8fafc', 
-                act: () => ball.tRadius = 16, de: () => ball.tRadius = 8, dur: 9000 }
+            WIDE: { label: '↔️ LEBAR', color: '#3b82f6', act: () => paddle.tw = 180, de: () => paddle.tw = 110, dur: 9000 },
+            SLOW: { label: '🐢 LAMBAT', color: '#fbbf24', act: () => { ball.dx *= 0.6; ball.dy *= 0.6; }, de: () => { ball.dx /= 0.6; ball.dy /= 0.6; }, dur: 7000 },
+            LIFE: { label: '❤️ BONUS', color: '#ef4444', act: () => { state.lives = Math.min(state.lives + 1, 10); updateHUD(); }, de: () => {}, dur: 0 },
+            BIG: { label: '⚪ BESAR', color: '#f8fafc', act: () => ball.tRadius = 16, de: () => ball.tRadius = 8, dur: 9000 }
         };
 
         function spawnPowerUp(x, y) {
@@ -417,13 +420,8 @@
             updatePowerUpUI();
         }
 
-        /**
-         * RENDERING
-         */
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Bricks
             bricks.forEach(col => col.forEach(b => {
                 if (b.status) {
                     ctx.fillStyle = getBrickColor(b.hits);
@@ -431,85 +429,42 @@
                     ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(b.x, b.y, b.w, 4);
                 }
             }));
-
-            // Powerups
             powerUps.forEach(p => {
-                ctx.fillStyle = p.type.color;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#000'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
-                ctx.fillText(p.type.label.split(' ')[0], p.x, p.y+4);
+                ctx.fillStyle = p.type.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center'; ctx.fillText(p.type.label.split(' ')[0], p.x, p.y+4);
             });
-
-            // Paddle
-            ctx.fillStyle = paddle.color;
-            ctx.shadowBlur = 15; ctx.shadowColor = paddle.color;
-            ctx.beginPath(); ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 10); ctx.fill();
-            ctx.shadowBlur = 0;
-
-            // Ball
-            ctx.fillStyle = ball.color;
-            ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
-
-            // Particles
+            ctx.fillStyle = paddle.color; ctx.shadowBlur = 15; ctx.shadowColor = paddle.color;
+            ctx.beginPath(); ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 10); ctx.fill(); ctx.shadowBlur = 0;
+            ctx.fillStyle = ball.color; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
             particles.forEach((p, i) => {
-                p.x += p.dx; p.y += p.dy; p.a -= 0.025;
-                if (p.a <= 0) particles.splice(i, 1);
-                ctx.globalAlpha = p.a; ctx.fillStyle = p.c;
-                ctx.fillRect(p.x, p.y, p.s, p.s);
+                p.x += p.dx; p.y += p.dy; p.a -= 0.025; if (p.a <= 0) particles.splice(i, 1);
+                ctx.globalAlpha = p.a; ctx.fillStyle = p.c; ctx.fillRect(p.x, p.y, p.s, p.s);
             });
             ctx.globalAlpha = 1;
-
-            if (state.running && !state.paused) {
-                update();
-                animationId = requestAnimationFrame(draw);
-            }
+            if (state.running && !state.paused) { update(); animationId = requestAnimationFrame(draw); }
         }
 
         function createParticles(x, y, c, n) {
-            for(let i=0; i<n; i++) {
-                particles.push({ 
-                    x, y, c, dx: (Math.random()-0.5)*8, dy: (Math.random()-0.5)*8, 
-                    a: 1, s: Math.random()*4 + 2 
-                });
-            }
+            for(let i=0; i<n; i++) particles.push({ x, y, c, dx: (Math.random()-0.5)*8, dy: (Math.random()-0.5)*8, a: 1, s: Math.random()*4 + 2 });
         }
 
-        function getBrickColor(h) {
-            if (h >= 3) return '#ef4444'; // Merah
-            if (h === 2) return '#f97316'; // Oranye
-            return '#3b82f6'; // Biru
-        }
+        function getBrickColor(h) { if (h >= 3) return '#ef4444'; if (h === 2) return '#f97316'; return '#3b82f6'; }
 
-        /**
-         * HUD & CONTROLS
-         */
         function updateHUD() {
             document.getElementById('levelDisplay').innerText = state.level;
             document.getElementById('scoreDisplay').innerText = state.score.toString().padStart(5, '0');
-            
             const livesVisual = document.getElementById('livesVisual');
             livesVisual.innerHTML = '';
-            for(let i=0; i<10; i++) {
-                const color = i < state.lives ? 'text-red-500' : 'text-slate-700';
-                livesVisual.innerHTML += `<span class="heart ${color}">❤</span>`;
-            }
+            for(let i=0; i<10; i++) livesVisual.innerHTML += `<span class="heart ${i < state.lives ? 'text-red-500' : 'text-slate-700'}">❤</span>`;
         }
 
         function updatePowerUpUI() {
             const container = document.getElementById('powerupContainer');
-            if (activePowerUps.length === 0) {
-                container.innerHTML = '<span class="text-slate-500 text-xs uppercase font-bold tracking-widest">Power-ups: Nonaktif</span>';
-                return;
-            }
+            if (activePowerUps.length === 0) { container.innerHTML = '<span class="text-slate-500 text-xs uppercase font-bold tracking-widest">Power-ups: Nonaktif</span>'; return; }
             container.innerHTML = '';
             activePowerUps.forEach(ap => {
                 const timeLeft = Math.ceil((ap.expires - Date.now()) / 1000);
-                container.innerHTML += `
-                    <div class="powerup-tag" style="border-color: ${ap.type.color}">
-                        <span class="mr-1 text-[10px] font-bold">${ap.type.label}</span>
-                        <span class="text-[10px] font-bold text-white/50">${timeLeft}s</span>
-                    </div>
-                `;
+                container.innerHTML += `<div class="powerup-tag" style="border-color: ${ap.type.color}"><span class="mr-1 text-[10px] font-bold">${ap.type.label}</span><span class="text-[10px] font-bold text-white/50">${timeLeft}s</span></div>`;
             });
         }
 
@@ -523,56 +478,48 @@
         function startGame() {
             state = { running: true, paused: false, score: 0, lives: 3, level: 1, baseSpeed: 5.5 };
             activePowerUps = []; powerUps = []; particles = [];
-            document.getElementById('menuOverlay').classList.add('hidden');
-            document.getElementById('statusOverlay').classList.add('hidden');
+            document.querySelectorAll('.overlay').forEach(ov => ov.classList.add('hidden'));
             document.getElementById('exitBtn').classList.remove('hidden');
-            updateHUD();
-            initLevel();
-            resize();
-            draw();
+            updateHUD(); initLevel(); resize(); draw();
         }
 
         function endGame(win) {
             state.running = false;
             cancelAnimationFrame(animationId);
+            const isRecord = saveScore();
             document.getElementById('statusTitle').innerText = win ? "LEVEL SELESAI!" : "PERMAINAN BERAKHIR";
             document.getElementById('statusTitle').className = win ? "text-4xl font-black text-green-500 mb-2" : "text-4xl font-black text-red-500 mb-2";
             document.getElementById('finalScore').innerText = state.score;
+            document.getElementById('newRecordMsg').classList.toggle('hidden', !isRecord);
             document.getElementById('statusOverlay').classList.remove('hidden');
             document.getElementById('exitBtn').classList.add('hidden');
+            if (!win) SFX.death(); else SFX.win();
         }
 
-        function movePaddle(e) {
-            if (!state.running || state.paused) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-            paddle.x = x - paddle.w/2;
-            if (paddle.x < 0) paddle.x = 0;
-            if (paddle.x + paddle.w > canvas.width) paddle.x = canvas.width - paddle.w;
-        }
-
-        // Event Listeners
+        /**
+         * LISTENERS
+         */
         window.addEventListener('resize', resize);
-        canvas.addEventListener('mousemove', movePaddle);
-        canvas.addEventListener('touchmove', movePaddle, { passive: false });
-        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!state.running || state.paused) return;
+            const x = e.clientX - canvas.getBoundingClientRect().left;
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.w, x - paddle.w / 2));
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (!state.running || state.paused) return;
+            const x = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.w, x - paddle.w / 2));
+        }, { passive: false });
+
         document.getElementById('startBtn').onclick = startGame;
         document.getElementById('restartBtn').onclick = startGame;
+        document.getElementById('leaderboardBtn').onclick = showLeaderboard;
+        document.getElementById('closeLeaderboardBtn').onclick = () => document.getElementById('leaderboardOverlay').classList.add('hidden');
         document.getElementById('homeBtn').onclick = () => location.reload();
-        
-        document.getElementById('exitBtn').onclick = () => {
-            state.paused = true;
-            document.getElementById('exitModal').classList.remove('hidden');
-        };
-        
+        document.getElementById('exitBtn').onclick = () => { state.paused = true; document.getElementById('exitModal').classList.remove('hidden'); };
         document.getElementById('confirmYes').onclick = () => location.reload();
-        document.getElementById('confirmNo').onclick = () => {
-            state.paused = false;
-            document.getElementById('exitModal').classList.add('hidden');
-            draw();
-        };
+        document.getElementById('confirmNo').onclick = () => { state.paused = false; document.getElementById('exitModal').classList.add('hidden'); draw(); };
 
-        // Polyfill roundRect
         if (!ctx.roundRect) {
             ctx.roundRect = function (x, y, w, h, r) {
                 this.beginPath(); this.moveTo(x + r, y);

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Breakout Pro Ultimate - Infinite Patterns</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --top-bar-height: 70px;
+            --bottom-bar-height: 45px;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #020617;
+            font-family: 'Inter', sans-serif;
+            touch-action: none;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            color: white;
+        }
+
+        /* --- UI Layout --- */
+        #topBar {
+            height: var(--top-bar-height);
+            background: #1e293b;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 0 15px;
+            border-bottom: 2px solid #334155;
+            z-index: 50;
+        }
+
+        #bottomBar {
+            height: var(--bottom-bar-height);
+            background: #1e293b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-top: 2px solid #334155;
+            z-index: 50;
+        }
+
+        #canvasContainer {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* --- HUD Components --- */
+        .hud-group { display: flex; flex-direction: column; align-items: center; }
+        .hud-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: bold; }
+        .hud-value { font-weight: 800; font-size: 1.2rem; line-height: 1; }
+
+        .heart-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            margin-top: 4px;
+        }
+        .heart { font-size: 10px; transition: color 0.3s; }
+
+        .exit-btn {
+            width: 32px;
+            height: 32px;
+            background: #ef4444;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+            margin-left: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .exit-btn:hover { background: #f87171; transform: scale(1.1); }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(8px); z-index: 100;
+        }
+
+        .powerup-tag {
+            background: #334155;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin: 0 5px;
+            display: flex;
+            align-items: center;
+            border: 1px solid #475569;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- --- BAR ATAS --- -->
+    <div id="topBar">
+        <div class="hud-group items-start">
+            <span class="hud-label">Stage</span>
+            <span id="levelDisplay" class="hud-value text-blue-400">1</span>
+        </div>
+
+        <div class="hud-group">
+            <span class="hud-label">Skor Total</span>
+            <span id="scoreDisplay" class="hud-value text-white text-2xl tracking-widest">00000</span>
+        </div>
+
+        <div class="flex items-center justify-end">
+            <div class="hud-group items-end mr-2">
+                <span class="hud-label">Nyawa</span>
+                <div id="livesVisual" class="heart-grid"></div>
+            </div>
+            <div id="exitBtn" class="exit-btn hidden">✕</div>
+        </div>
+    </div>
+
+    <!-- --- AREA CANVAS --- -->
+    <div id="canvasContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Menu Utama -->
+        <div id="menuOverlay" class="overlay">
+            <h1 class="text-5xl font-black text-white mb-2 italic tracking-tighter">BREAKOUT <span class="text-blue-500">PRO</span></h1>
+            <p class="text-slate-400 mb-10 text-xs tracking-[0.3em] uppercase">Infinite Stages & Patterns</p>
+            
+            <div class="flex flex-col gap-4 w-64">
+                <button id="startBtn" class="bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold text-lg shadow-xl shadow-blue-900/40 transition-all active:scale-95">MULAI BERMAIN</button>
+                <button id="leaderboardBtn" class="bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-bold shadow-lg transition-all active:scale-95 text-sm uppercase">Skor Tertinggi</button>
+            </div>
+        </div>
+
+        <!-- Status Selesai -->
+        <div id="statusOverlay" class="overlay hidden">
+            <h2 id="statusTitle" class="text-4xl font-black mb-2">STAGE CLEAR!</h2>
+            <p class="text-slate-400">Skor Anda:</p>
+            <p id="finalScore" class="text-5xl font-black text-blue-500 mb-10">0</p>
+            
+            <div class="flex flex-col gap-3 w-64">
+                <button id="restartBtn" class="bg-blue-600 py-4 rounded-xl font-bold shadow-lg">MAIN LAGI</button>
+                <button id="homeBtn" class="bg-slate-800 py-3 rounded-xl font-bold">MENU UTAMA</button>
+            </div>
+        </div>
+
+        <!-- Modal Konfirmasi Keluar -->
+        <div id="exitModal" class="overlay hidden">
+            <div class="bg-slate-800 p-8 rounded-3xl border-2 border-slate-700 text-center shadow-2xl">
+                <h3 class="text-2xl font-bold mb-6">Keluar dari Game?</h3>
+                <div class="flex gap-4 justify-center">
+                    <button id="confirmYes" class="bg-red-600 px-10 py-3 rounded-xl font-bold hover:bg-red-500">YA</button>
+                    <button id="confirmNo" class="bg-slate-600 px-10 py-3 rounded-xl font-bold hover:bg-slate-500">TIDAK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- BAR BAWAH --- -->
+    <div id="bottomBar">
+        <div id="powerupContainer" class="flex items-center">
+            <span class="text-slate-500 text-xs uppercase font-bold tracking-widest">Power-ups: Nonaktif</span>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * AUDIO SYSTEM (Synthesized)
+         */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type, duration, vol = 0.08) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const SFX = {
+            paddle: () => playTone(180, 'square', 0.1),
+            brick: () => playTone(350, 'sine', 0.05),
+            brickDestroy: () => playTone(220, 'sine', 0.1),
+            powerUp: () => { playTone(440, 'triangle', 0.1); setTimeout(() => playTone(660, 'triangle', 0.15), 80); },
+            death: () => playTone(80, 'sawtooth', 0.5, 0.15),
+            win: () => [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 'sine', 0.4), i*120))
+        };
+
+        /**
+         * GAME ENGINE
+         */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvasContainer');
+
+        let state = { running: false, paused: false, score: 0, lives: 3, level: 1, baseSpeed: 5.5 };
+        let ball = { x: 0, y: 0, dx: 0, dy: 0, radius: 8, tRadius: 8, color: '#fff' };
+        let paddle = { x: 0, y: 0, w: 110, tw: 110, h: 14, color: '#3b82f6' };
+        let bricks = [];
+        let particles = [];
+        let powerUps = [];
+        let activePowerUps = [];
+        let animationId;
+
+        // --- 10 POLA IKONIK ---
+        const PATTERNS = [
+            (c, r) => (r < 1 ? 3 : (r < 2 ? 2 : 1)), // Pola 1: Sederhana (Level 1 sangat cepat)
+            (c, r) => (c % 2 === 0 ? 3 : 1),        // Pola 2: Garis Vertikal
+            (c, r) => (r % 2 === 0 ? 2 : 0),        // Pola 3: Baris Zebra
+            (c, r) => (c === r || c === 9-r-1 ? 3 : 1), // Pola 4: Bentuk X
+            (c, r) => (c < 2 || c > 6 || r < 2 ? 3 : 0), // Pola 5: Bingkai
+            (c, r, cols, rows) => (Math.abs(c - (cols/2)) + r < 5 ? 3 : 0), // Pola 6: Piramida
+            (c, r) => (c % 3 === 0 ? 3 : (c % 3 === 1 ? 2 : 1)), // Pola 7: Tri-Color
+            (c, r) => (r === 2 ? 3 : (r < 2 ? 1 : 2)), // Pola 8: Pembatas Tengah
+            (c, r) => ((c+r)%2 === 0 ? 2 : 0),      // Pola 9: Checkerboard
+            (c, r) => (3)                            // Pola 10: Full Red (Boss)
+        ];
+
+        // --- DINAMIS KONFIGURASI GRID ---
+        function getLevelConfig(lv) {
+            // Level 1: 5x3, Level 10+: 9x7
+            const cols = Math.min(9, 4 + Math.ceil(lv / 2));
+            const rows = Math.min(7, 2 + Math.ceil(lv / 3));
+            return { cols, rows, padding: 8, top: 40, left: 20, h: 22 };
+        }
+
+        function initLevel() {
+            bricks = [];
+            const cfg = getLevelConfig(state.level);
+            const patternIdx = (state.level - 1) % PATTERNS.length;
+            const patternFunc = PATTERNS[patternIdx];
+            
+            const brickWidth = (canvas.width - cfg.left * 2) / cfg.cols - cfg.padding;
+            
+            for(let c=0; c<cfg.cols; c++) {
+                bricks[c] = [];
+                for(let r=0; r<cfg.rows; r++) {
+                    const type = patternFunc(c, r, cfg.cols, cfg.rows);
+                    bricks[c][r] = { 
+                        x: 0, y: 0, 
+                        status: type > 0 ? 1 : 0, 
+                        hits: type, max: type, 
+                        w: brickWidth,
+                        cfg: cfg 
+                    };
+                }
+            }
+            resetBall();
+        }
+
+        function resetBall() {
+            paddle.x = (canvas.width - paddle.w) / 2;
+            ball.x = canvas.width / 2;
+            ball.y = paddle.y - 20;
+            
+            // Kecepatan meningkat 0.3 per level selamanya
+            const currentSpeed = state.baseSpeed + (state.level * 0.3);
+            const angle = (Math.random() * 40 - 20) * (Math.PI / 180);
+            ball.dx = currentSpeed * Math.sin(angle);
+            ball.dy = -currentSpeed;
+        }
+
+        /**
+         * PHYSICS
+         */
+        function update() {
+            if (!state.running || state.paused) return;
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Wall Collision (Fixed: No ghosting)
+            if (ball.x - ball.radius < 0) {
+                ball.dx = Math.abs(ball.dx);
+                ball.x = ball.radius;
+                SFX.brick();
+            } else if (ball.x + ball.radius > canvas.width) {
+                ball.dx = -Math.abs(ball.dx);
+                ball.x = canvas.width - ball.radius;
+                SFX.brick();
+            }
+
+            if (ball.y - ball.radius < 0) {
+                ball.dy = Math.abs(ball.dy);
+                ball.y = ball.radius;
+                SFX.brick();
+            }
+
+            // Lose condition
+            if (ball.y + ball.radius > canvas.height) {
+                state.lives--;
+                SFX.death();
+                updateHUD();
+                if (state.lives <= 0) endGame(false);
+                else resetBall();
+                return;
+            }
+
+            // Paddle Collision
+            if (ball.y + ball.radius > paddle.y && 
+                ball.y - ball.radius < paddle.y + paddle.h &&
+                ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.dy > 0) {
+                
+                let hitPos = (ball.x - (paddle.x + paddle.w/2)) / (paddle.w/2);
+                let speed = Math.sqrt(ball.dx**2 + ball.dy**2);
+                ball.dx = speed * hitPos * 0.85;
+                ball.dy = -Math.sqrt(Math.max(0.1, speed**2 - ball.dx**2));
+                SFX.paddle();
+                createParticles(ball.x, ball.y, '#fff', 4);
+                ball.y = paddle.y - ball.radius;
+            }
+
+            // Brick Collision (Single hit detection per frame)
+            let collisionOccurred = false;
+            for(let c=0; c<bricks.length && !collisionOccurred; c++) {
+                for(let r=0; r<bricks[c].length && !collisionOccurred; r++) {
+                    let b = bricks[c][r];
+                    if (b.status === 1) {
+                        const cfg = b.cfg;
+                        b.x = c * (b.w + cfg.padding) + cfg.left;
+                        b.y = r * (cfg.h + cfg.padding) + cfg.top;
+
+                        if (ball.x + ball.radius > b.x && ball.x - ball.radius < b.x + b.w &&
+                            ball.y + ball.radius > b.y && ball.y - ball.radius < b.y + cfg.h) {
+                            
+                            let overlapX = Math.min(ball.x + ball.radius - b.x, b.x + b.w - (ball.x - ball.radius));
+                            let overlapY = Math.min(ball.y + ball.radius - b.y, b.y + cfg.h - (ball.y - ball.radius));
+
+                            if (overlapX < overlapY) ball.dx *= -1;
+                            else ball.dy *= -1;
+
+                            b.hits--;
+                            if (b.hits <= 0) {
+                                b.status = 0;
+                                state.score += (b.max * 10);
+                                SFX.brickDestroy();
+                                createParticles(b.x + b.w/2, b.y + cfg.h/2, getBrickColor(b.max));
+                                if (Math.random() < 0.18) spawnPowerUp(b.x + b.w/2, b.y);
+                            } else {
+                                SFX.brick();
+                            }
+                            updateHUD();
+                            collisionOccurred = true;
+                        }
+                    }
+                }
+            }
+
+            // Power-ups
+            powerUps.forEach((p, i) => {
+                p.y += 2.8;
+                if (p.y > canvas.height) powerUps.splice(i, 1);
+                else if (p.y + p.r > paddle.y && p.x > paddle.x && p.x < paddle.x + paddle.w) {
+                    applyPowerUp(p.type);
+                    powerUps.splice(i, 1);
+                    SFX.powerUp();
+                }
+            });
+
+            activePowerUps.forEach((ap, i) => {
+                if (Date.now() > ap.expires) {
+                    ap.deactivate();
+                    activePowerUps.splice(i, 1);
+                    updatePowerUpUI();
+                }
+            });
+
+            // Level Clear
+            if (bricks.every(col => col.every(b => b.status === 0))) {
+                state.level++;
+                SFX.win();
+                initLevel();
+                updateHUD();
+            }
+
+            // Visual Lerps
+            ball.radius += (ball.tRadius - ball.radius) * 0.1;
+            paddle.w += (paddle.tw - paddle.w) * 0.1;
+        }
+
+        /**
+         * POWER-UP SYSTEM
+         */
+        const PWR_TYPES = {
+            WIDE: { label: '↔️ LEBAR', color: '#3b82f6', 
+                act: () => paddle.tw = 180, de: () => paddle.tw = 110, dur: 9000 },
+            SLOW: { label: '🐢 LAMBAT', color: '#fbbf24', 
+                act: () => { ball.dx *= 0.6; ball.dy *= 0.6; }, de: () => { ball.dx /= 0.6; ball.dy /= 0.6; }, dur: 7000 },
+            LIFE: { label: '❤️ BONUS', color: '#ef4444', 
+                act: () => { state.lives = Math.min(state.lives + 1, 10); updateHUD(); }, de: () => {}, dur: 0 },
+            BIG: { label: '⚪ BESAR', color: '#f8fafc', 
+                act: () => ball.tRadius = 16, de: () => ball.tRadius = 8, dur: 9000 }
+        };
+
+        function spawnPowerUp(x, y) {
+            const keys = Object.keys(PWR_TYPES);
+            const type = PWR_TYPES[keys[Math.floor(Math.random() * keys.length)]];
+            powerUps.push({ x, y, r: 10, type });
+        }
+
+        function applyPowerUp(type) {
+            if (type.dur === 0) { type.act(); return; }
+            type.act();
+            activePowerUps.push({ type, expires: Date.now() + type.dur, deactivate: type.de });
+            updatePowerUpUI();
+        }
+
+        /**
+         * RENDERING
+         */
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Bricks
+            bricks.forEach(col => col.forEach(b => {
+                if (b.status) {
+                    ctx.fillStyle = getBrickColor(b.hits);
+                    ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.cfg.h, 5); ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(b.x, b.y, b.w, 4);
+                }
+            }));
+
+            // Powerups
+            powerUps.forEach(p => {
+                ctx.fillStyle = p.type.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(p.type.label.split(' ')[0], p.x, p.y+4);
+            });
+
+            // Paddle
+            ctx.fillStyle = paddle.color;
+            ctx.shadowBlur = 15; ctx.shadowColor = paddle.color;
+            ctx.beginPath(); ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 10); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Ball
+            ctx.fillStyle = ball.color;
+            ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2); ctx.fill();
+
+            // Particles
+            particles.forEach((p, i) => {
+                p.x += p.dx; p.y += p.dy; p.a -= 0.025;
+                if (p.a <= 0) particles.splice(i, 1);
+                ctx.globalAlpha = p.a; ctx.fillStyle = p.c;
+                ctx.fillRect(p.x, p.y, p.s, p.s);
+            });
+            ctx.globalAlpha = 1;
+
+            if (state.running && !state.paused) {
+                update();
+                animationId = requestAnimationFrame(draw);
+            }
+        }
+
+        function createParticles(x, y, c, n) {
+            for(let i=0; i<n; i++) {
+                particles.push({ 
+                    x, y, c, dx: (Math.random()-0.5)*8, dy: (Math.random()-0.5)*8, 
+                    a: 1, s: Math.random()*4 + 2 
+                });
+            }
+        }
+
+        function getBrickColor(h) {
+            if (h >= 3) return '#ef4444'; // Merah
+            if (h === 2) return '#f97316'; // Oranye
+            return '#3b82f6'; // Biru
+        }
+
+        /**
+         * HUD & CONTROLS
+         */
+        function updateHUD() {
+            document.getElementById('levelDisplay').innerText = state.level;
+            document.getElementById('scoreDisplay').innerText = state.score.toString().padStart(5, '0');
+            
+            const livesVisual = document.getElementById('livesVisual');
+            livesVisual.innerHTML = '';
+            for(let i=0; i<10; i++) {
+                const color = i < state.lives ? 'text-red-500' : 'text-slate-700';
+                livesVisual.innerHTML += `<span class="heart ${color}">❤</span>`;
+            }
+        }
+
+        function updatePowerUpUI() {
+            const container = document.getElementById('powerupContainer');
+            if (activePowerUps.length === 0) {
+                container.innerHTML = '<span class="text-slate-500 text-xs uppercase font-bold tracking-widest">Power-ups: Nonaktif</span>';
+                return;
+            }
+            container.innerHTML = '';
+            activePowerUps.forEach(ap => {
+                const timeLeft = Math.ceil((ap.expires - Date.now()) / 1000);
+                container.innerHTML += `
+                    <div class="powerup-tag" style="border-color: ${ap.type.color}">
+                        <span class="mr-1 text-[10px] font-bold">${ap.type.label}</span>
+                        <span class="text-[10px] font-bold text-white/50">${timeLeft}s</span>
+                    </div>
+                `;
+            });
+        }
+
+        function resize() {
+            canvas.width = canvasContainer.offsetWidth;
+            canvas.height = canvasContainer.offsetHeight;
+            paddle.y = canvas.height - 40;
+            if (!state.running) resetBall();
+        }
+
+        function startGame() {
+            state = { running: true, paused: false, score: 0, lives: 3, level: 1, baseSpeed: 5.5 };
+            activePowerUps = []; powerUps = []; particles = [];
+            document.getElementById('menuOverlay').classList.add('hidden');
+            document.getElementById('statusOverlay').classList.add('hidden');
+            document.getElementById('exitBtn').classList.remove('hidden');
+            updateHUD();
+            initLevel();
+            resize();
+            draw();
+        }
+
+        function endGame(win) {
+            state.running = false;
+            cancelAnimationFrame(animationId);
+            document.getElementById('statusTitle').innerText = win ? "LEVEL SELESAI!" : "PERMAINAN BERAKHIR";
+            document.getElementById('statusTitle').className = win ? "text-4xl font-black text-green-500 mb-2" : "text-4xl font-black text-red-500 mb-2";
+            document.getElementById('finalScore').innerText = state.score;
+            document.getElementById('statusOverlay').classList.remove('hidden');
+            document.getElementById('exitBtn').classList.add('hidden');
+        }
+
+        function movePaddle(e) {
+            if (!state.running || state.paused) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            paddle.x = x - paddle.w/2;
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.w > canvas.width) paddle.x = canvas.width - paddle.w;
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', resize);
+        canvas.addEventListener('mousemove', movePaddle);
+        canvas.addEventListener('touchmove', movePaddle, { passive: false });
+        
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+        document.getElementById('homeBtn').onclick = () => location.reload();
+        
+        document.getElementById('exitBtn').onclick = () => {
+            state.paused = true;
+            document.getElementById('exitModal').classList.remove('hidden');
+        };
+        
+        document.getElementById('confirmYes').onclick = () => location.reload();
+        document.getElementById('confirmNo').onclick = () => {
+            state.paused = false;
+            document.getElementById('exitModal').classList.add('hidden');
+            draw();
+        };
+
+        // Polyfill roundRect
+        if (!ctx.roundRect) {
+            ctx.roundRect = function (x, y, w, h, r) {
+                this.beginPath(); this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();
+            };
+        }
+
+        resize();
+    </script>
+</body>
+</html>
+
